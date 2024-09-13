@@ -1,26 +1,12 @@
 import logging
 from fastapi import UploadFile, File, Form, HTTPException
 from minio.error import S3Error
+from ..utils.minio_validators import check_bucket_exists, check_file_exists
 from ..utils.minio_client import get_minio_client
 
 client = get_minio_client() 
 
 logger = logging.getLogger(__name__)
-
-async def check_bucket_exists(bucket_name: str):
-    if not client.bucket_exists(bucket_name):
-        logger.error(f"Bucket '{bucket_name}' does not exist.")
-        raise HTTPException(status_code=404, detail=f"Bucket '{bucket_name}' does not exist.")
-
-async def check_file_exists(bucket_name: str, file_name: str):
-    try:
-        client.stat_object(bucket_name, file_name)
-    except S3Error as e:
-        if "NoSuchKey" in str(e):
-            logger.error(f"File '{file_name}' does not exist in bucket '{bucket_name}'.")
-            raise HTTPException(status_code=404, detail=f"File '{file_name}' does not exist in bucket '{bucket_name}'.")
-        logger.error(f"Error occurred while checking for file '{file_name}' in bucket '{bucket_name}': {str(e)}")
-        raise e
 
 async def upload_file(
     bucket_name: str,
