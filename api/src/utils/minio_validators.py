@@ -27,3 +27,28 @@ async def check_file_exists(bucket_name: str, file_name: str):
             raise HTTPException(status_code=404, detail=f"File '{file_name}' does not exist in bucket '{bucket_name}'.")
         logger.error(f"Error occurred while checking for file '{file_name}' in bucket '{bucket_name}': {str(e)}")
         raise e
+
+async def check_directory_exists(bucket_name: str, directory_name: str):
+    """
+    Checks if a directory exists in the S3 bucket by checking for any objects with the directory prefix.
+    If no objects are found with the prefix, it is assumed that the directory does not exist.
+
+    :param bucket_name: The name of the S3 bucket.
+    :param directory_name: The name of the directory to check.
+    :raises HTTPException: If the directory does not exist.
+    """
+    if not directory_name.endswith('/'):
+        directory_name += '/'
+
+    try:
+        objects = client.list_objects(bucket_name, prefix=directory_name, recursive=False)
+        first_object = next(objects, None)
+        if not first_object:
+            logger.error(f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+            raise HTTPException(status_code=404, detail=f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+    except StopIteration:
+        logger.error(f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+        raise HTTPException(status_code=404, detail=f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+    except Exception as e:
+        logger.error(f"Failed to check if directory '{directory_name}' exists in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to check directory existence: {str(e)}")
