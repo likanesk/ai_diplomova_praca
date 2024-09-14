@@ -15,6 +15,18 @@ async def create_bucket(bucket_name: str):
     except S3Error as e:
         raise HTTPException(status_code=500, detail=f"Failed to create bucket: {str(e)}")
 
+async def get_all_buckets():
+    try:
+        buckets = client.list_buckets()
+        return {
+            "buckets": [
+                {"name": bucket.name, "creation_date": bucket.creation_date}
+                for bucket in buckets
+            ]
+        }
+    except S3Error as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list buckets: {str(e)}")
+
 async def delete_bucket(bucket_name: str):
     try:
         try:
