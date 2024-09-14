@@ -81,3 +81,32 @@ async def check_class_exists(bucket_name: str, directory_name: str, class_name: 
     except Exception as e:
         logger.error(f"Failed to check if class '{class_name}' exists in directory '{directory_name}' of bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to check class existence: {str(e)}")
+    
+async def check_sample_exists(bucket_name: str, directory_name: str, class_name: str, sample_name: str):
+    """
+    Checks if a specific sample (file) exists in a class (subfolder) within a directory in the S3 bucket.
+
+    :param bucket_name: The name of the S3 bucket.
+    :param directory_name: The name of the directory.
+    :param class_name: The name of the class (subfolder).
+    :param sample_name: The name of the sample (file) to check.
+    :raises HTTPException: If the sample does not exist.
+    """
+    if not directory_name.endswith('/'):
+        directory_name += '/'
+    if not class_name.endswith('/'):
+        class_name += '/'
+    sample_path = f"{directory_name}{class_name}{sample_name}"
+
+    try:
+        objects = client.list_objects(bucket_name, prefix=sample_path, recursive=False)
+        first_object = next(objects, None)
+        if not first_object or first_object.object_name != sample_path:
+            logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+            raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+    except StopIteration:
+        logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+        raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+    except Exception as e:
+        logger.error(f"Failed to check if sample '{sample_name}' exists in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to check sample existence: {str(e)}")
