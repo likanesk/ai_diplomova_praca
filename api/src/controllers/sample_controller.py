@@ -1,6 +1,7 @@
 import logging
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
+from minio import S3Error
 from ..utils.minio_client import get_minio_client
 from ..utils.minio_validators import check_bucket_exists, check_class_exists, check_directory_exists, check_sample_exists
 
@@ -63,3 +64,32 @@ async def download_sample(bucket_name: str, directory_name: str, class_name: str
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+async def delete_sample(bucket_name: str, directory_name: str, class_name: str, sample_name: str):
+    """
+    Deletes a specific sample (file) within a class from an S3 bucket.
+
+    :param bucket_name: The name of the S3 bucket.
+    :param directory_name: The name of the directory containing the class.
+    :param class_name: The name of the class (subdirectory) containing the sample.
+    :param sample_name: The name of the sample (file) to delete.
+    :return: A message indicating the status of the deletion.
+    """
+    try:
+        await check_bucket_exists(bucket_name)
+        await check_directory_exists(bucket_name, directory_name)
+        await check_class_exists(bucket_name, directory_name, class_name)
+        await check_sample_exists(bucket_name, directory_name, class_name, sample_name)
+
+        file_path = f"{directory_name}/{class_name}/{sample_name}"
+        client.remove_object(bucket_name, file_path)
+        
+        logger.info(f"Sample '{sample_name}' deleted successfully from class '{class_name}' in bucket '{bucket_name}'.")
+        return {"message": f"Sample '{sample_name}' deleted successfully from class '{class_name}' in directory '{directory_name}' in bucket '{bucket_name}'."}
+
+    except S3Error as e:
+        logger.error(f"Failed to delete sample '{sample_name}' from class '{class_name}' in directory '{directory_name}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete sample: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error occurred while deleting sample '{sample_name}' from class '{class_name}' in directory '{directory_name}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
