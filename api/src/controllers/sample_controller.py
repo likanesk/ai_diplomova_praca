@@ -1,5 +1,6 @@
 import logging
-from fastapi import HTTPException
+import os
+from fastapi import File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from minio import S3Error
 from ..utils.minio_client import get_minio_client
@@ -9,6 +10,46 @@ from ..utils.minio_validators import check_bucket_exists, check_class_exists, ch
 client = get_minio_client()
 logger = logging.getLogger(__name__)
 
+async def upload_sample(bucket_name: str, directory_name: str, class_name: str, 
+                        file: UploadFile = File(...)):
+    """
+    Uploads a sample file with a .bmp extension to a specified class within a directory in an S3 bucket.
+
+    :param bucket_name: The name of the S3 bucket.
+    :param directory_name: The name of the directory containing the class.
+    :param class_name: The name of the class (subdirectory) to receive the file.
+    :param file: The sample file to upload.
+    :return: A message indicating the status of the upload.
+    """
+    file_extension = os.path.splitext(file.filename)[1]
+    if file_extension != '.bmp':
+        raise HTTPException(status_code=400, detail="Only .bmp files are accepted.")
+
+    await check_bucket_exists(bucket_name)
+    await check_directory_exists(bucket_name, directory_name)
+    await check_class_exists(bucket_name, directory_name, class_name)
+
+    file_path = f"{directory_name}/{class_name}/{file.filename}"
+    
+    try:
+        # Seek to the end of the file to determine the size, then rewind
+        file.file.seek(0, os.SEEK_END)
+        file_size = file.file.tell()
+        file.file.seek(0, os.SEEK_SET)
+
+        client.put_object(
+            bucket_name, file_path, file.file, file_size
+        )
+        logger.info(f"File '{file.filename}' uploaded successfully to '{file_path}' in bucket '{bucket_name}'.")
+        return {"message": f"File '{file.filename}' uploaded successfully to '{file_path}'."}
+
+    except S3Error as e:
+        logger.error(f"Failed to upload file '{file.filename}' to '{file_path}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error occurred during file upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+    
 async def get_all_samples(bucket_name: str, directory_name: str, class_name: str):
     """
     Retrieves all samples (files) from a specified class within a directory in an S3 bucket.
@@ -83,7 +124,7 @@ async def delete_sample(bucket_name: str, directory_name: str, class_name: str, 
 
         file_path = f"{directory_name}/{class_name}/{sample_name}"
         client.remove_object(bucket_name, file_path)
-        
+
         logger.info(f"Sample '{sample_name}' deleted successfully from class '{class_name}' in bucket '{bucket_name}'.")
         return {"message": f"Sample '{sample_name}' deleted successfully from class '{class_name}' in directory '{directory_name}' in bucket '{bucket_name}'."}
 
