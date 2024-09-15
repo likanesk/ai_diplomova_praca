@@ -46,6 +46,25 @@ async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
 
     return {"message": "Directory uploaded successfully"}
 
+async def get_all_directories(bucket_name: str):
+    """
+    Retrieves all top-level directories from a specified S3 bucket.
+
+    :param bucket_name: The name of the S3 bucket.
+    :return: A list of top-level directory names within the specified bucket.
+    :raises HTTPException: If there is an error in fetching the directories.
+    """
+    await check_bucket_exists(bucket_name)
+
+    try:
+        objects = client.list_objects(bucket_name)
+        # Filter to get only directories (objects with names ending in '/')
+        directory_list = [obj.object_name.rstrip('/') for obj in objects if obj.object_name.endswith('/')]
+        return {"directories": directory_list}
+    except Exception as e:
+        logger.error(f"Failed to retrieve directories in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve directories: {str(e)}")
+
 async def download_directory(bucket_name: str, directory_name: str):
     """
     Downloads all files from a specified directory in the S3 bucket to a local directory.

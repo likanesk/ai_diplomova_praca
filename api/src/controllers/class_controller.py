@@ -8,6 +8,30 @@ from minio.error import S3Error
 client = get_minio_client()
 logger = logging.getLogger(__name__)
 
+async def get_all_classes(bucket_name: str, directory_name: str):
+    """
+    Retrieves all classes (subfolders) from a specified directory within an S3 bucket.
+
+    :param bucket_name: The name of the S3 bucket.
+    :param directory_name: The name of the directory within the bucket.
+    :return: A list of class names (subfolders) within the specified directory.
+    :raises HTTPException: If there is an error in fetching the classes.
+    """
+    await check_bucket_exists(bucket_name)
+    await check_directory_exists(bucket_name, directory_name)
+
+    if not directory_name.endswith('/'):
+        directory_name += '/'
+
+    try:
+        objects = client.list_objects(bucket_name, prefix=directory_name, recursive=False)
+        # Filter to get only directories (objects ending with '/')
+        class_list = [obj.object_name[len(directory_name):-1] for obj in objects if obj.object_name.endswith('/')]
+        return {"classes": class_list}
+    except Exception as e:
+        logger.error(f"Failed to retrieve classes in directory '{directory_name}' of bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve classes: {str(e)}")
+
 async def download_class(bucket_name: str, directory_name: str, class_name: str):
     """
     Downloads all files from a specified class (subdirectory) within a directory in the S3 bucket to a local directory.
