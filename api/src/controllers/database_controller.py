@@ -4,7 +4,7 @@ import logging
 import zipfile
 from fastapi import HTTPException, File, UploadFile
 from ..utils.minio_client import get_minio_client
-from ..utils.minio_validators import check_bucket_exists, check_directory_exists
+from ..utils.minio_validators import check_bucket_exists, check_database_exists
 from minio.error import S3Error
 
 client = get_minio_client()
@@ -16,17 +16,17 @@ async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
     
     await check_bucket_exists(bucket_name)
 
-    # Use a temporary directory for extraction and processing
+    # Use a temporary database for extraction and processing
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file_path = os.path.join(temp_dir, file.filename)
         with open(temp_file_path, 'wb+') as f:
             f.write(await file.read())
 
-        # Unzip the file within the temporary directory
+        # Unzip the file within the temporary database
         with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
 
-            # Walk through the directory structure and upload each file
+            # Walk through the database structure and upload each file
             for root, dirs, files in os.walk(temp_dir):
                 for filename in files:
                     if root != temp_dir:
@@ -44,39 +44,39 @@ async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
                             except S3Error as e:
                                 raise HTTPException(status_code=500, detail=f"Failed to upload {object_name}: {str(e)}")
 
-    return {"message": "Directory uploaded successfully"}
+    return {"message": "Database uploaded successfully"}
 
-async def get_all_directories(bucket_name: str):
+async def get_all_databases(bucket_name: str):
     """
-    Retrieves all top-level directories from a specified S3 bucket.
+    Retrieves all top-level databases from a specified S3 bucket.
 
     :param bucket_name: The name of the S3 bucket.
-    :return: A list of top-level directory names within the specified bucket.
-    :raises HTTPException: If there is an error in fetching the directories.
+    :return: A list of top-level database names within the specified bucket.
+    :raises HTTPException: If there is an error in fetching the databases.
     """
     await check_bucket_exists(bucket_name)
 
     try:
         objects = client.list_objects(bucket_name)
-        # Filter to get only directories (objects with names ending in '/')
-        directory_list = [obj.object_name.rstrip('/') for obj in objects if obj.object_name.endswith('/')]
-        return {"directories": directory_list}
+        # Filter to get only databases (objects with names ending in '/')
+        database_list = [obj.object_name.rstrip('/') for obj in objects if obj.object_name.endswith('/')]
+        return {"databases": database_list}
     except Exception as e:
-        logger.error(f"Failed to retrieve directories in bucket '{bucket_name}': {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve directories: {str(e)}")
+        logger.error(f"Failed to retrieve databases in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve databases: {str(e)}")
 
-async def download_directory(bucket_name: str, directory_name: str):
+async def download_database(bucket_name: str, database_name: str):
     """
-    Downloads all files from a specified directory in the S3 bucket to a local directory.
+    Downloads all files from a specified database in the S3 bucket to a local database.
     
     :param bucket_name: The name of the S3 bucket.
-    :param directory_name: The name of the directory inside the bucket.
+    :param database_name: The name of the database inside the bucket.
     :return: A message indicating the status of the download.
     """
     try:
         await check_bucket_exists(bucket_name)
 
-        objects = client.list_objects(bucket_name, prefix=directory_name, recursive=True)
+        objects = client.list_objects(bucket_name, prefix=database_name, recursive=True)
         dir_path = "/tmp"
 
         for obj in objects:
@@ -84,37 +84,37 @@ async def download_directory(bucket_name: str, directory_name: str):
             client.fget_object(bucket_name, obj.object_name, file_path)
             logger.info(f"File '{obj.object_name}' downloaded successfully to '{file_path}'.")
 
-        return {"message": f"All files from directory '{directory_name}' downloaded successfully.", "directory_location": dir_path}
+        return {"message": f"All files from database '{database_name}' downloaded successfully.", "database_location": dir_path}
     
     except S3Error as e:
-        logger.error(f"Failed to download directory '{directory_name}' from bucket '{bucket_name}': {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to download directory: {str(e)}")
+        logger.error(f"Failed to download database '{database_name}' from bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to download database: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error occurred while downloading directory '{directory_name}' from bucket '{bucket_name}': {str(e)}")
+        logger.error(f"Unexpected error occurred while downloading database '{database_name}' from bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
-async def delete_directory(bucket_name: str, directory_name: str):
+async def delete_database(bucket_name: str, database_name: str):
     """
-    Deletes an entire directory from the S3 bucket.
+    Deletes an entire database from the S3 bucket.
 
     :param bucket_name: The name of the S3 bucket.
-    :param directory_name: The name of the directory to delete.
+    :param database_name: The name of the database to delete.
     :return: A message indicating the status of the deletion.
     """
     try:
         await check_bucket_exists(bucket_name)
-        await check_directory_exists(bucket_name, directory_name)
+        await check_database_exists(bucket_name, database_name)
 
-        objects = client.list_objects(bucket_name, prefix=directory_name, recursive=True)
+        objects = client.list_objects(bucket_name, prefix=database_name, recursive=True)
         for obj in objects:
             client.remove_object(bucket_name, obj.object_name)
             logger.info(f"Object '{obj.object_name}' deleted successfully from bucket '{bucket_name}'.")
 
-        return {"message": f"Directory '{directory_name}' deleted successfully from bucket '{bucket_name}'."}
+        return {"message": f"Database '{database_name}' deleted successfully from bucket '{bucket_name}'."}
 
     except S3Error as e:
-        logger.error(f"Failed to delete directory '{directory_name}' from bucket '{bucket_name}': {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete directory: {str(e)}")
+        logger.error(f"Failed to delete database '{database_name}' from bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete database: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error occurred while deleting directory '{directory_name}' from bucket '{bucket_name}': {str(e)}")
+        logger.error(f"Unexpected error occurred while deleting database '{database_name}' from bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")

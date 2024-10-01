@@ -15,98 +15,85 @@ async def check_bucket_exists(bucket_name: str):
         logger.error(f"Bucket '{bucket_name}' does not exist.")
         raise HTTPException(status_code=404, detail=f"Bucket '{bucket_name}' does not exist.")
 
-async def check_file_exists(bucket_name: str, file_name: str):
+async def check_database_exists(bucket_name: str, database_name: str):
     """
-    Checks if the file exists in the given S3 bucket, raises an HTTPException if not found.
-    """
-    try:
-        client.stat_object(bucket_name, file_name)
-    except S3Error as e:
-        if "NoSuchKey" in str(e):
-            logger.error(f"File '{file_name}' does not exist in bucket '{bucket_name}'.")
-            raise HTTPException(status_code=404, detail=f"File '{file_name}' does not exist in bucket '{bucket_name}'.")
-        logger.error(f"Error occurred while checking for file '{file_name}' in bucket '{bucket_name}': {str(e)}")
-        raise e
-
-async def check_directory_exists(bucket_name: str, directory_name: str):
-    """
-    Checks if a directory exists in the S3 bucket by checking for any objects with the directory prefix.
-    If no objects are found with the prefix, it is assumed that the directory does not exist.
+    Checks if a database exists in the S3 bucket by checking for any objects with the database prefix.
+    If no objects are found with the prefix, it is assumed that the database does not exist.
 
     :param bucket_name: The name of the S3 bucket.
-    :param directory_name: The name of the directory to check.
-    :raises HTTPException: If the directory does not exist.
+    :param database_name: The name of the database to check.
+    :raises HTTPException: If the database does not exist.
     """
-    if not directory_name.endswith('/'):
-        directory_name += '/'
+    if not database_name.endswith('/'):
+        database_name += '/'
 
     try:
-        objects = client.list_objects(bucket_name, prefix=directory_name, recursive=False)
+        objects = client.list_objects(bucket_name, prefix=database_name, recursive=False)
         first_object = next(objects, None)
         if not first_object:
-            logger.error(f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
-            raise HTTPException(status_code=404, detail=f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+            logger.error(f"Database '{database_name}' does not exist in bucket '{bucket_name}'.")
+            raise HTTPException(status_code=404, detail=f"Database '{database_name}' does not exist in bucket '{bucket_name}'.")
     except StopIteration:
-        logger.error(f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
-        raise HTTPException(status_code=404, detail=f"Directory '{directory_name}' does not exist in bucket '{bucket_name}'.")
+        logger.error(f"Database '{database_name}' does not exist in bucket '{bucket_name}'.")
+        raise HTTPException(status_code=404, detail=f"Database '{database_name}' does not exist in bucket '{bucket_name}'.")
     except Exception as e:
-        logger.error(f"Failed to check if directory '{directory_name}' exists in bucket '{bucket_name}': {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to check directory existence: {str(e)}")
+        logger.error(f"Failed to check if database '{database_name}' exists in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to check database existence: {str(e)}")
 
-async def check_class_exists(bucket_name: str, directory_name: str, class_name: str):
+async def check_class_exists(bucket_name: str, database_name: str, class_name: str):
     """
-    Checks if a class (subfolder) exists in a directory within the S3 bucket by checking for any objects with the class prefix.
+    Checks if a class (subfolder) exists in a database within the S3 bucket by checking for any objects with the class prefix.
     If no objects are found with the prefix, it is assumed that the class does not exist.
 
     :param bucket_name: The name of the S3 bucket.
-    :param directory_name: The name of the directory.
+    :param database_name: The name of the database.
     :param class_name: The name of the class (subfolder) to check.
     :raises HTTPException: If the class does not exist.
     """
-    if not directory_name.endswith('/'):
-        directory_name += '/'
+    if not database_name.endswith('/'):
+        database_name += '/'
     if not class_name.endswith('/'):
         class_name += '/'
-    full_prefix = f"{directory_name}{class_name}"
+    full_prefix = f"{database_name}{class_name}"
 
     try:
         objects = client.list_objects(bucket_name, prefix=full_prefix, recursive=False)
         first_object = next(objects, None)
         if not first_object:
-            logger.error(f"Class '{class_name}' does not exist in directory '{directory_name}' of bucket '{bucket_name}'.")
-            raise HTTPException(status_code=404, detail=f"Class '{class_name}' does not exist in directory '{directory_name}' of bucket '{bucket_name}'.")
+            logger.error(f"Class '{class_name}' does not exist in database '{database_name}' of bucket '{bucket_name}'.")
+            raise HTTPException(status_code=404, detail=f"Class '{class_name}' does not exist in database '{database_name}' of bucket '{bucket_name}'.")
     except StopIteration:
-        logger.error(f"Class '{class_name}' does not exist in directory '{directory_name}' of bucket '{bucket_name}'.")
-        raise HTTPException(status_code=404, detail=f"Class '{class_name}' does not exist in directory '{directory_name}' of bucket '{bucket_name}'.")
+        logger.error(f"Class '{class_name}' does not exist in database '{database_name}' of bucket '{bucket_name}'.")
+        raise HTTPException(status_code=404, detail=f"Class '{class_name}' does not exist in database '{database_name}' of bucket '{bucket_name}'.")
     except Exception as e:
-        logger.error(f"Failed to check if class '{class_name}' exists in directory '{directory_name}' of bucket '{bucket_name}': {str(e)}")
+        logger.error(f"Failed to check if class '{class_name}' exists in database '{database_name}' of bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to check class existence: {str(e)}")
     
-async def check_sample_exists(bucket_name: str, directory_name: str, class_name: str, sample_name: str):
+async def check_sample_exists(bucket_name: str, database_name: str, class_name: str, sample_name: str):
     """
-    Checks if a specific sample (file) exists in a class (subfolder) within a directory in the S3 bucket.
+    Checks if a specific sample (file) exists in a class (subfolder) within a database in the S3 bucket.
 
     :param bucket_name: The name of the S3 bucket.
-    :param directory_name: The name of the directory.
+    :param database_name: The name of the database.
     :param class_name: The name of the class (subfolder).
     :param sample_name: The name of the sample (file) to check.
     :raises HTTPException: If the sample does not exist.
     """
-    if not directory_name.endswith('/'):
-        directory_name += '/'
+    if not database_name.endswith('/'):
+        database_name += '/'
     if not class_name.endswith('/'):
         class_name += '/'
-    sample_path = f"{directory_name}{class_name}{sample_name}"
+    sample_path = f"{database_name}{class_name}{sample_name}"
 
     try:
         objects = client.list_objects(bucket_name, prefix=sample_path, recursive=False)
         first_object = next(objects, None)
         if not first_object or first_object.object_name != sample_path:
-            logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
-            raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+            logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of database '{database_name}' in bucket '{bucket_name}'.")
+            raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of database '{database_name}' in bucket '{bucket_name}'.")
     except StopIteration:
-        logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
-        raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}'.")
+        logger.error(f"Sample '{sample_name}' does not exist in class '{class_name}' of database '{database_name}' in bucket '{bucket_name}'.")
+        raise HTTPException(status_code=404, detail=f"Sample '{sample_name}' does not exist in class '{class_name}' of database '{database_name}' in bucket '{bucket_name}'.")
     except Exception as e:
-        logger.error(f"Failed to check if sample '{sample_name}' exists in class '{class_name}' of directory '{directory_name}' in bucket '{bucket_name}': {str(e)}")
+        logger.error(f"Failed to check if sample '{sample_name}' exists in class '{class_name}' of database '{database_name}' in bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to check sample existence: {str(e)}")
