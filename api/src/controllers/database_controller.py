@@ -10,6 +10,35 @@ from minio.error import S3Error
 client = get_minio_client()
 logger = logging.getLogger(__name__)
 
+async def validate_zip_structure(temp_dir: str) -> bool:
+    # Walk through the extracted files to validate structure
+    db_folder = None
+    for root, dirs, files in os.walk(temp_dir):
+        rel_path = os.path.relpath(root, temp_dir).replace('\\', '/')
+
+        # Check top-level folder (<DB>)
+        if rel_path == '.':
+            if len(dirs) != 1:
+                raise HTTPException(status_code=400, detail="There should be exactly one top-level <DB> folder.")
+            db_folder = dirs[0]
+
+        # Validate classes inside DB folder
+        elif rel_path.count('/') == 0 and root.split(os.sep)[-1] == db_folder:
+            if not dirs:
+                raise HTTPException(status_code=400, detail="The <DB> folder must contain class folders.")
+        
+        # Validate that class folders contain only image files and no additional subfolders
+        elif rel_path.count('/') == 1:  # This assumes we're inside a class folder now
+            if dirs:
+                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains subfolders, which is not allowed.")
+            if not files:
+                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains no files.")
+            for file in files:
+                if not file.lower().endswith(('.bmp', '.jpg', '.jpeg', '.png', '.gif')):  # Check image formats
+                    raise HTTPException(status_code=400, detail=f"File '{file}' in class folder '{root}' is not a valid image.")
+
+    return True
+
 async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="File is not a zip.")
@@ -25,6 +54,9 @@ async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
         # Unzip the file within the temporary database
         with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
+
+            # Validate the folder structure before uploading
+            await validate_zip_structure(temp_dir)
 
             # Walk through the database structure and upload each file
             for root, dirs, files in os.walk(temp_dir):
