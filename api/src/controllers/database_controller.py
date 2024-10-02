@@ -10,7 +10,10 @@ from minio.error import S3Error
 client = get_minio_client()
 logger = logging.getLogger(__name__)
 
-async def validate_zip_structure(temp_dir: str) -> bool:
+async def validate_zip_structure(temp_dir: str, expected_num_classes: int, expected_num_files_per_class: int) -> bool:
+    # Track the number of class folders
+    class_folders = []
+
     # Walk through the extracted files to validate structure
     db_folder = None
     for root, dirs, files in os.walk(temp_dir):
@@ -26,39 +29,44 @@ async def validate_zip_structure(temp_dir: str) -> bool:
         elif rel_path.count('/') == 0 and root.split(os.sep)[-1] == db_folder:
             if not dirs:
                 raise HTTPException(status_code=400, detail="The <DB> folder must contain class folders.")
+            class_folders.extend(dirs)
         
         # Validate that class folders contain only image files and no additional subfolders
         elif rel_path.count('/') == 1:  # This assumes we're inside a class folder now
             if dirs:
                 raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains subfolders, which is not allowed.")
-            if not files:
-                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains no files.")
+            if len(files) != expected_num_files_per_class:
+                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains {len(files)} files, but {expected_num_files_per_class} were expected.")
             for file in files:
                 if not file.lower().endswith(('.bmp', '.jpg', '.jpeg', '.png', '.gif')):  # Check image formats
                     raise HTTPException(status_code=400, detail=f"File '{file}' in class folder '{root}' is not a valid image.")
 
+    # Check the number of class folders
+    if len(class_folders) != expected_num_classes:
+        raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(class_folders)}.")
+
     return True
 
-async def upload_zip(bucket_name: str, file: UploadFile = File(...)):
+async def upload_zip(bucket_name: str, file: UploadFile = File(...), expected_num_classes: int = 4, expected_num_files_per_class: int = 200):
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="File is not a zip.")
-    
+
     await check_bucket_exists(bucket_name)
 
-    # Use a temporary database for extraction and processing
+    # Use a temporary directory for extraction and processing
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file_path = os.path.join(temp_dir, file.filename)
         with open(temp_file_path, 'wb+') as f:
             f.write(await file.read())
 
-        # Unzip the file within the temporary database
+        # Unzip the file within the temporary directory
         with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
 
-            # Validate the folder structure before uploading
-            await validate_zip_structure(temp_dir)
+            # Validate the folder structure and number of classes/files before uploading
+            await validate_zip_structure(temp_dir, expected_num_classes, expected_num_files_per_class)
 
-            # Walk through the database structure and upload each file
+            # Walk through the directory structure and upload each file
             for root, dirs, files in os.walk(temp_dir):
                 for filename in files:
                     if root != temp_dir:
