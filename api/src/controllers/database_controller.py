@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import logging
 import zipfile
@@ -11,39 +12,185 @@ client = get_minio_client()
 logger = logging.getLogger(__name__)
 
 async def validate_zip_structure(temp_dir: str, expected_num_classes: int, expected_num_files_per_class: int) -> bool:
-    # Track the number of class folders
     class_folders = []
-
-    # Walk through the extracted files to validate structure
+    file_count_per_class = {}
     db_folder = None
+    valid_extensions = {'.bmp', '.jpg', '.jpeg', '.png', '.gif'}
     for root, dirs, files in os.walk(temp_dir):
         rel_path = os.path.relpath(root, temp_dir).replace('\\', '/')
 
-        # Check top-level folder (<DB>)
         if rel_path == '.':
             if len(dirs) != 1:
                 raise HTTPException(status_code=400, detail="There should be exactly one top-level <DB> folder.")
             db_folder = dirs[0]
 
-        # Validate classes inside DB folder
         elif rel_path.count('/') == 0 and root.split(os.sep)[-1] == db_folder:
             if not dirs:
                 raise HTTPException(status_code=400, detail="The <DB> folder must contain class folders.")
             class_folders.extend(dirs)
-        
-        # Validate that class folders contain only image files and no additional subfolders
-        elif rel_path.count('/') == 1:  # This assumes we're inside a class folder now
+
+        elif rel_path.count('/') == 1:
             if dirs:
                 raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains subfolders, which is not allowed.")
-            if len(files) != expected_num_files_per_class:
-                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains {len(files)} files, but {expected_num_files_per_class} were expected.")
-            for file in files:
-                if not file.lower().endswith(('.bmp', '.jpg', '.jpeg', '.png', '.gif')):  # Check image formats
-                    raise HTTPException(status_code=400, detail=f"File '{file}' in class folder '{root}' is not a valid image.")
+            # Create a set of file numbers that should exist based on file count
+            file_numbers = set(range(1, expected_num_files_per_class + 1))
+            found_files = set()
 
-    # Check the number of class folders
+            for file in files:
+                base_name, ext = os.path.splitext(file)
+                if ext in valid_extensions:
+                    # Try to convert filename to integer, stripping leading zeros
+                    try:
+                        file_num = int(base_name)
+                        if 1 <= file_num <= expected_num_files_per_class:
+                            found_files.add(file_num)
+                    except ValueError:
+                        continue  # Skip files that do not convert to integer
+            
+            file_count_per_class[root] = len(files)
+
+            missing_numbers = file_numbers - found_files
+            if missing_numbers:
+                raise HTTPException(status_code=400, detail=f"Missing files for expected numbers: {sorted(missing_numbers)} in class folder '{root}'.")
+
     if len(class_folders) != expected_num_classes:
         raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(class_folders)}.")
+    
+        # Check the number of class folders
+    if len(file_count_per_class) != expected_num_classes:
+        raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(file_count_per_class)}.")
+
+    # Check if each class folder contains the correct number of files
+    for class_name, file_count in file_count_per_class.items():
+        if file_count != expected_num_files_per_class:
+            raise HTTPException(status_code=400, detail=f"Class folder '{class_name}' contains {file_count} files, but {expected_num_files_per_class} were expected.")
+
+
+    return True
+
+# Regex patterns for filename validation
+pattern_with_class = re.compile(r'^[A-Z0-9][ _][0-9]{2,4}$')  # Matches CIFFFF, CIFFF, CIFF
+pattern_without_class = re.compile(r'^[0-9]{2,4}$')  # Matches FFFF, FFF, FF
+
+async def validate_flat_zip_structure(temp_dir: str, expected_num_classes: int, expected_num_files_per_class: int) -> bool:
+    # Track the number of class folders and filenames
+    file_count_per_class = {}
+    files_outside_classes = []  # Initialize list to store files outside class folders
+
+    # Ensure the folder for the ZIP file exists
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    # Walk through the extracted files
+    for root, dirs, files in os.walk(temp_dir):
+        rel_path = os.path.relpath(root, temp_dir).replace('\\', '/')
+
+        # If we are at the top-level folder
+        if rel_path == '.' or rel_path == os.path.basename(temp_dir):
+            # If a folder matches the ZIP file name, process the files within it
+            if temp_dir in dirs:
+                # Process files inside this folder as if it was the top-level directory
+                folder_path = os.path.join(root, temp_dir)
+                for _, _, inner_files in os.walk(folder_path):
+                    for file in inner_files:
+                        file_name_without_ext, file_ext = os.path.splitext(file)
+
+                        # Skip the file if it matches the ZIP file's base name
+                        if file_name_without_ext == temp_dir:
+                            continue  # Ignore this file completely
+
+                        # Otherwise, add the file for processing
+                        files_outside_classes.append(os.path.join(folder_path, file))
+                dirs.remove(temp_dir)  # Remove this folder to avoid further walking
+
+            # Process any files in the top-level directory
+            for file in files:
+                file_name_without_ext, file_ext = os.path.splitext(file)
+
+                # Skip the file if it matches the ZIP file's base name
+                if file_name_without_ext == temp_dir:
+                    continue  # Ignore this file completely
+
+                # Otherwise, add it to files_outside_classes for processing
+                file_path = os.path.join(root, file)
+                files_outside_classes.append(file_path)
+
+        # Handle files inside valid class folders
+        elif rel_path.count('/') == 1:  # We're inside a class folder now
+            class_name = os.path.basename(root)
+            if dirs:
+                raise HTTPException(status_code=400, detail=f"Class folder '{class_name}' contains subfolders, which is not allowed.")
+
+            if len(files) != expected_num_files_per_class:
+                raise HTTPException(status_code=400, detail=f"Class folder '{class_name}' contains {len(files)} files, but {expected_num_files_per_class} were expected.")
+
+            for file in files:
+                file_name_without_ext, file_ext = os.path.splitext(file)
+
+                # Skip the file if it matches the ZIP file's base name
+                if file_name_without_ext == temp_dir:
+                    continue  # Ignore this file completely
+
+                # Validate the filename in the format CIFFFF/CIFFF/CIFF
+                if pattern_with_class.match(file_name_without_ext):
+                    # Extract class identifier and file part
+                    file_class, _, file_part = file_name_without_ext.partition(' ' if ' ' in file_name_without_ext else '_')
+
+                    # If the file class doesn't match the folder class, raise an error
+                    if file_class != class_name:
+                        raise HTTPException(status_code=400, detail=f"File '{file}' is in class '{class_name}', but its class part is '{file_class}'.")
+
+                    # Rename the file to the FFFF/FFF/FF format (without the class part)
+                    new_file_name = f"{file_part}{file_ext}"
+                    new_file_path = os.path.join(root, new_file_name)
+                    os.rename(os.path.join(root, file), new_file_path)
+
+                elif not pattern_without_class.match(file_name_without_ext):
+                    # If the file name doesn't match the expected pattern, raise an error
+                    raise HTTPException(status_code=400, detail=f"File '{file}' in class folder '{class_name}' does not follow the expected format.")
+                
+            # Track the number of files per class
+            file_count_per_class[class_name] = len(files)
+
+    # Process files outside class folders (or in the folder named after the ZIP)
+    if files_outside_classes:
+        for file_path in files_outside_classes:
+            file_name = os.path.basename(file_path)
+            file_name_without_ext, file_ext = os.path.splitext(file_name)
+
+            # Skip the file if it matches the ZIP file's base name
+            if file_name_without_ext == temp_dir:
+                continue  # Ignore this file completely
+
+            # Validate the file format (CIFFFF/CIFFF/CIFF)
+            if not pattern_with_class.match(file_name_without_ext):
+                raise HTTPException(status_code=400, detail=f"File '{file_name}' does not follow the CIFFFF/CIFFF/CIFF format.")
+
+            # Extract class identifier and file part
+            file_class, _, file_part = file_name_without_ext.partition(' ' if ' ' in file_name_without_ext else '_')
+
+            # Create class folder inside the folder named after the ZIP file
+            class_folder = os.path.join(temp_dir, file_class)
+            os.makedirs(class_folder, exist_ok=True)
+
+            # Move and rename the file to FFFF/FFF/FF format in the class folder
+            new_file_name = f"{file_part}{file_ext}"
+            new_file_path = os.path.join(class_folder, new_file_name)
+            os.rename(file_path, new_file_path)
+
+            # Update file count for the class
+            if file_class not in file_count_per_class:
+                file_count_per_class[file_class] = 0
+            file_count_per_class[file_class] += 1
+
+    # Check the number of class folders
+    if len(file_count_per_class) != expected_num_classes:
+        raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(file_count_per_class)}.")
+
+    # Check if each class folder contains the correct number of files
+    for class_name, file_count in file_count_per_class.items():
+        if file_count != expected_num_files_per_class:
+            raise HTTPException(status_code=400, detail=f"Class folder '{class_name}' contains {file_count} files, but {expected_num_files_per_class} were expected.")
 
     return True
 
@@ -59,12 +206,28 @@ async def upload_zip(bucket_name: str, file: UploadFile = File(...), expected_nu
         with open(temp_file_path, 'wb+') as f:
             f.write(await file.read())
 
-        # Unzip the file within the temporary directory
+         # Unzip the file within the temporary directory
         with zipfile.ZipFile(temp_file_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
 
-            # Validate the folder structure and number of classes/files before uploading
-            await validate_zip_structure(temp_dir, expected_num_classes, expected_num_files_per_class)
+            # Get the name of the zip without the '.zip' extension
+            zip_name_without_extension = os.path.splitext(file.filename)[0]
+
+            # Determine the path of the directory matching the ZIP name
+            matching_dir_path = os.path.join(temp_dir, zip_name_without_extension)
+
+            # Check if the matching directory (same name as ZIP file) exists and whether it contains any classes (subdirectories)
+            if os.path.exists(matching_dir_path) and os.path.isdir(matching_dir_path):
+                # List contents of the matching directory
+                if any(os.path.isdir(os.path.join(matching_dir_path, item)) for item in os.listdir(matching_dir_path)):
+                    # Contains classes (subdirectories), validate as a structured directory with classes
+                    await validate_zip_structure(temp_dir, expected_num_classes, expected_num_files_per_class)
+                else:
+                    # No classes (subdirectories), validate as a flat file structure
+                    await validate_flat_zip_structure(matching_dir_path, expected_num_classes, expected_num_files_per_class)
+            else:
+                # No matching directory or it does not contain directories
+                raise HTTPException(status_code=400, detail="Validation failed for the zip contents.")
 
             # Walk through the directory structure and upload each file
             for root, dirs, files in os.walk(temp_dir):
