@@ -11,65 +11,71 @@ from minio.error import S3Error
 client = get_minio_client()
 logger = logging.getLogger(__name__)
 
+VALID_EXTENSIONS = {'.bmp', '.jpg', '.jpeg', '.png', '.gif'}
+
+def is_valid_image(file_name: str) -> bool:
+    _, ext = os.path.splitext(file_name)
+    return ext in VALID_EXTENSIONS
+
+def validate_class_folder(class_folder: str, files: list, expected_num_files_per_class: int) -> None:
+    if not files:
+        raise HTTPException(status_code=400, detail=f"Class folder '{class_folder}' contains no files.")
+
+    file_numbers = set(range(1, expected_num_files_per_class + 1))
+    found_files = set()
+
+    for file in files:
+        base_name, ext = os.path.splitext(file)
+        if is_valid_image(file):
+            try:
+                file_num = int(base_name)
+                if 1 <= file_num <= expected_num_files_per_class:
+                    found_files.add(file_num)
+            except ValueError:
+                continue  # Skip files that cannot be converted to integer
+        else:
+            raise HTTPException(status_code=400, detail=f"File '{file}' in class folder '{class_folder}' is not a valid image. Accepted file formats are: {', '.join(VALID_EXTENSIONS)}.")
+
+    missing_numbers = file_numbers - found_files
+    if missing_numbers:
+        raise HTTPException(status_code=400, detail=f"Missing files for expected numbers: {sorted(missing_numbers)} in class folder '{class_folder}'.")
+
+    if len(files) != expected_num_files_per_class:
+        raise HTTPException(status_code=400, detail=f"Class folder '{class_folder}' contains {len(files)} files, but {expected_num_files_per_class} were expected.")
+
 async def validate_zip_structure(temp_dir: str, expected_num_classes: int, expected_num_files_per_class: int) -> bool:
     class_folders = []
-    file_count_per_class = {}
     db_folder = None
-    valid_extensions = {'.bmp', '.jpg', '.jpeg', '.png', '.gif'}
-    for root, dirs, files in os.walk(temp_dir):
-        rel_path = os.path.relpath(root, temp_dir).replace('\\', '/')
 
+    for current_folder, subfolders, files_in_current_folder in os.walk(temp_dir):
+        rel_path = os.path.relpath(current_folder, temp_dir).replace('\\', '/')
+
+        # Validate top-level folder (DB folder)
         if rel_path == '.':
-            if len(dirs) != 1:
+            if len(subfolders) != 1:
                 raise HTTPException(status_code=400, detail="There should be exactly one top-level <DB> folder.")
-            db_folder = dirs[0]
+            db_folder = subfolders[0]
 
-        elif rel_path.count('/') == 0 and root.split(os.sep)[-1] == db_folder:
-            if not dirs:
+        elif rel_path.count('/') == 0 and os.path.basename(current_folder) == db_folder:
+            if not subfolders:
                 raise HTTPException(status_code=400, detail="The <DB> folder must contain class folders.")
-            class_folders.extend(dirs)
+            class_folders.extend(subfolders)
 
+        # Validate individual class folders and their contents
         elif rel_path.count('/') == 1:
-            if dirs:
-                raise HTTPException(status_code=400, detail=f"Class folder '{root}' contains subfolders, which is not allowed.")
-            # Create a set of file numbers that should exist based on file count
-            file_numbers = set(range(1, expected_num_files_per_class + 1))
-            found_files = set()
-
-            for file in files:
-                base_name, ext = os.path.splitext(file)
-                if ext in valid_extensions:
-                    # Try to convert filename to integer, stripping leading zeros
-                    try:
-                        file_num = int(base_name)
-                        if 1 <= file_num <= expected_num_files_per_class:
-                            found_files.add(file_num)
-                    except ValueError:
-                        continue  # Skip files that do not convert to integer
+            if subfolders:
+                raise HTTPException(status_code=400, detail=f"Class folder '{current_folder}' contains subfolders, which is not allowed.")
             
-            file_count_per_class[root] = len(files)
+            validate_class_folder(current_folder, files_in_current_folder, expected_num_files_per_class)
 
-            missing_numbers = file_numbers - found_files
-            if missing_numbers:
-                raise HTTPException(status_code=400, detail=f"Missing files for expected numbers: {sorted(missing_numbers)} in class folder '{root}'.")
-
+    # Final check to ensure the correct number of class folders
     if len(class_folders) != expected_num_classes:
         raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(class_folders)}.")
-    
-        # Check the number of class folders
-    if len(file_count_per_class) != expected_num_classes:
-        raise HTTPException(status_code=400, detail=f"Expected {expected_num_classes} class folders, but found {len(file_count_per_class)}.")
-
-    # Check if each class folder contains the correct number of files
-    for class_name, file_count in file_count_per_class.items():
-        if file_count != expected_num_files_per_class:
-            raise HTTPException(status_code=400, detail=f"Class folder '{class_name}' contains {file_count} files, but {expected_num_files_per_class} were expected.")
-
 
     return True
 
 # Regex patterns for filename validation
-pattern_with_class = re.compile(r'^[A-Z0-9][ _][0-9]{2,4}$')  # Matches CIFFFF, CIFFF, CIFF
+pattern_with_class = re.compile(r'^[A-Z0-9]{1,6}[\s\-_]*[\s\-_]+[\s\-_]*[0-9]{2,4}$')  # Matches CIFF, CIFFF, CIFFFF also CIIIFF, CIIIFFF, CIIIFFFF
 pattern_without_class = re.compile(r'^[0-9]{2,4}$')  # Matches FFFF, FFF, FF
 
 async def validate_flat_zip_structure(temp_dir: str, expected_num_classes: int, expected_num_files_per_class: int) -> bool:
