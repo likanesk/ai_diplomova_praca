@@ -1,5 +1,5 @@
 <h1 align="left">Description 
-  <img src="api/images/fastapi-logo.png" alt="FastAPI Logo" align="right" width="100"/>
+  <img src="backend/images/fastapi-logo.png" alt="FastAPI Logo" align="right" width="100"/>
 </h1>
 
 **Diplomova praca - Adrian Ihring**
