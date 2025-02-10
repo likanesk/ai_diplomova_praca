@@ -14,7 +14,7 @@ export default function Navbar() {
       <nav className="bg-white border-gray-200 dark:bg-gray-900">
         <div className="flex flex-wrap justify-between items-center mx-auto max-w-screen-xl p-4">
           <Link
-            href="#"
+            href="/pages/home"
             className="flex items-center space-x-3 rtl:space-x-reverse"
           >
             <IoHomeOutline className="w-6 h-6 text-gray-800 dark:text-white mr-1" />
@@ -24,7 +24,7 @@ export default function Navbar() {
           </Link>
           <div className="flex items-center space-x-6 rtl:space-x-reverse">
             <Link
-              href="#"
+              href="/pages/login"
               className="text-sm text-blue-600 dark:text-blue-500 hover:underline"
             >
               <div className="flex">
@@ -41,7 +41,7 @@ export default function Navbar() {
             <ul className="flex flex-row font-medium mt-0 space-x-8 rtl:space-x-reverse text-sm">
               <li>
                 <Link
-                  href="#"
+                  href="/pages/bucket"
                   className="text-gray-900 dark:text-white hover:underline"
                   aria-current="page"
                 >
@@ -53,7 +53,7 @@ export default function Navbar() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/pages/dataset"
                   className="text-gray-900 dark:text-white hover:underline"
                 >
                   <div className="flex">
@@ -64,7 +64,7 @@ export default function Navbar() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/pages/class"
                   className="text-gray-900 dark:text-white hover:underline"
                 >
                   <div className="flex">
@@ -75,7 +75,7 @@ export default function Navbar() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/pages/sample"
                   className="text-gray-900 dark:text-white hover:underline"
                 >
                   <div className="flex">
