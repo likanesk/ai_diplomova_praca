@@ -7,6 +7,9 @@ import {
   callGetAllBuckets,
   callRemoveBucket,
 } from "@/app/services/bucket/bucketService";
+import Table from "@/app/components/Table";
+import TableRow from "@/app/components/TableRow";
+import { useRouter } from "next/navigation";
 
 interface Bucket {
   name: string;
@@ -19,6 +22,7 @@ export default function BucketPage() {
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<Bucket | null>(null);
+  const router = useRouter();
 
   const fetchBuckets = useCallback(async () => {
     setLoading(true);
@@ -53,6 +57,10 @@ export default function BucketPage() {
     }
   };
 
+  const handleRowClick = (bucketName: string) => {
+    router.push(`/pages/dataset?bucket=${bucketName}`);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -63,56 +71,37 @@ export default function BucketPage() {
 
   return (
     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-      <table className="w-[80%] mx-auto my-4 text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-        <caption className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
-          Buckets
-          <p className="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
-            A bucket is similar to a folder or directory in a filesystem, where
+      <Table
+        headers={["Bucket Name", "Creation Date", "Remove"]}
+        caption="Buckets"
+        description="A bucket is similar to a folder or directory in a filesystem, where
             each bucket can hold an arbitrary number of objects. In our case,
             the bucket contains image datasets, which are collections of images
-            that we can use for processing or analysis.
-          </p>
-        </caption>
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-          <tr>
-            <th scope="col" className="px-6 py-3">
-              Bucket Name
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Creation Date
-            </th>
-            <th scope="col" className="px-6 py-3">
-              Remove
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {buckets.map((bucket, index) => (
-            <tr
-              key={index}
-              className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
-            >
-              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                {bucket.name}
-              </td>
-              <td className="px-6 py-4">
-                {new Date(bucket.creation_date).toLocaleString()}
-              </td>
-              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                <button
-                  onClick={() => {
-                    setSelectedBucket(bucket);
-                    setIsModalOpen(true);
-                  }}
-                  className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                >
-                  <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            that we can use for processing or analysis."
+      >
+        {buckets.map((bucket, index) => (
+          <TableRow key={index} onClick={() => handleRowClick(bucket.name)}>
+            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              {bucket.name}
+            </td>
+            <td className="px-6 py-4">
+              {new Date(bucket.creation_date).toLocaleString()}
+            </td>
+            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedBucket(bucket);
+                  setIsModalOpen(true);
+                }}
+                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+              >
+                <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+              </button>
+            </td>
+          </TableRow>
+        ))}
+      </Table>
 
       <RemoveDialog
         isOpen={isModalOpen}
