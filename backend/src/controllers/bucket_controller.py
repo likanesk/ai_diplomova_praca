@@ -29,20 +29,6 @@ async def get_all_buckets():
 
 async def delete_bucket(bucket_name: str):
     try:
-        try:
-            await check_bucket_exists(bucket_name)
-            return {"message": f"Bucket '{bucket_name}' already exists."}
-        except HTTPException as e:
-            if e.status_code == 404:
-                client.make_bucket(bucket_name)
-                return {"message": f"Bucket '{bucket_name}' created successfully."}
-            else:
-                raise e
-    except S3Error as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create bucket: {str(e)}")
-
-async def delete_bucket(bucket_name: str):
-    try:
         await check_bucket_exists(bucket_name)
 
         objects = client.list_objects(bucket_name)

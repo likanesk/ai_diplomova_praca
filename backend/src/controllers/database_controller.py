@@ -304,7 +304,7 @@ async def download_database(bucket_name: str, database_name: str):
 
 async def delete_database(bucket_name: str, database_name: str):
     """
-    Deletes an entire database from the S3 bucket.
+    Deletes an entire database from the S3 bucket based on exact name match.
 
     :param bucket_name: The name of the S3 bucket.
     :param database_name: The name of the database to delete.
@@ -314,8 +314,20 @@ async def delete_database(bucket_name: str, database_name: str):
         await check_bucket_exists(bucket_name)
         await check_database_exists(bucket_name, database_name)
 
-        objects = client.list_objects(bucket_name, prefix=database_name, recursive=True)
-        for obj in objects:
+        objects = client.list_objects(bucket_name, recursive=True)
+
+        database_prefix = f"{database_name}/"
+        database_objects = [
+            obj for obj in objects
+            if obj.object_name.startswith(database_prefix)
+            or obj.object_name == database_name
+        ]
+
+        if not database_objects:
+            logger.warning(f"No objects found for database '{database_name}' in bucket '{bucket_name}'.")
+            return {"message": f"No objects found for database '{database_name}' in bucket '{bucket_name}'."}
+
+        for obj in database_objects:
             client.remove_object(bucket_name, obj.object_name)
             logger.info(f"Object '{obj.object_name}' deleted successfully from bucket '{bucket_name}'.")
 
