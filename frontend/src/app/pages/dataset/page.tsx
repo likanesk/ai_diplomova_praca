@@ -10,7 +10,7 @@ import {
 import { callGetAllBuckets } from "@/app/services/bucket/bucketService";
 import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Bucket {
   name: string;
@@ -27,13 +27,13 @@ export default function DatasetPage() {
   const [selectedBucket, setSelectedBucket] = useState<string>("");
 
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const fetchBuckets = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const data = await callGetAllBuckets();
-      console.log("Buckets API response: ", data);
       setBuckets(data?.buckets || []);
     } catch {
       setError("Failed to fetch buckets");
@@ -49,7 +49,6 @@ export default function DatasetPage() {
     setError("");
     try {
       const data = await callGetAllDatasets(selectedBucket);
-      console.log("Datasets API response: ", data);
       setDatasets(data?.databases || []);
     } catch {
       setError("Failed to fetch datasets");
@@ -87,6 +86,10 @@ export default function DatasetPage() {
         setError(`Failed to delete dataset: ${selectedDataset}`);
       }
     }
+  };
+
+  const handleRowClick = (bucketName: string, datasetName: string) => {
+    router.push(`/pages/class?bucket=${bucketName}&dataset=${datasetName}`);
   };
 
   if (loading) {
@@ -127,13 +130,17 @@ export default function DatasetPage() {
         description="A dataset is a collection of data, typically in a structured format, that can be used for analysis or processing."
       >
         {datasets.map((dataset, index) => (
-          <TableRow key={index}>
+          <TableRow
+            key={index}
+            onClick={() => handleRowClick(selectedBucket, dataset)}
+          >
             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
               {dataset}
             </td>
             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSelectedDataset(dataset);
                   setIsModalOpen(true);
                 }}
