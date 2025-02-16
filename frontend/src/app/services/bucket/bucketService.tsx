@@ -1,3 +1,21 @@
+export const callCreateBucket = async (bucketName: string) => {
+  const response = await fetch(
+    `http://localhost:8000/buckets/create-bucket/${bucketName}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to create bucket: '${bucketName}'`);
+  }
+
+  return await response.json();
+};
+
 export const callGetAllBuckets = async () => {
   const response = await fetch(
     "http://localhost:8000/buckets/get-all-buckets",

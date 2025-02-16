@@ -6,10 +6,14 @@ import { IoTrashOutline } from "react-icons/io5";
 import {
   callGetAllBuckets,
   callRemoveBucket,
+  callCreateBucket,
 } from "@/app/services/bucket/bucketService";
 import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
 import { useRouter } from "next/navigation";
+import InputField from "@/app/components/InputField";
+import SuccessMessage from "@/app/components/SuccessMessage";
+import Button from "@/app/components/Button";
 
 interface Bucket {
   name: string;
@@ -22,6 +26,8 @@ export default function BucketPage() {
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<Bucket | null>(null);
+  const [inputBucketName, setInputBucketName] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const router = useRouter();
 
   const fetchBuckets = useCallback(async () => {
@@ -61,6 +67,18 @@ export default function BucketPage() {
     router.push(`/pages/dataset?bucket=${bucketName}`);
   };
 
+  const handleCreateBucket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await callCreateBucket(inputBucketName);
+      fetchBuckets();
+      setInputBucketName("");
+      setShowSuccessModal(true);
+    } catch {
+      setError(`Failed to create bucket: ${inputBucketName}`);
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -71,6 +89,19 @@ export default function BucketPage() {
 
   return (
     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+      <form className="max-w-sm mx-auto my-4" onSubmit={handleCreateBucket}>
+        <InputField
+          label="Bucket name"
+          type="text"
+          id="bucket"
+          name="bucket"
+          required
+          value={inputBucketName}
+          onChange={(value) => setInputBucketName(value)}
+        />
+        <Button type="submit">Create</Button>
+      </form>
+
       <Table
         headers={["Bucket Name", "Creation Date", "Remove"]}
         caption="Buckets"
@@ -109,6 +140,10 @@ export default function BucketPage() {
         onConfirm={handleDelete}
         name={selectedBucket?.name || ""}
       />
+
+      {showSuccessModal && (
+        <SuccessMessage onClose={() => setShowSuccessModal(false)} />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { IoAlertCircleOutline, IoClose } from "react-icons/io5";
+import { IoAlertCircleOutline } from "react-icons/io5";
+import CloseButton from "./CloseButton";
 
 interface RemoveDialogProps {
   isOpen: boolean;
@@ -20,12 +21,7 @@ export default function RemoveDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-black bg-opacity-50">
       <div className="relative p-4 w-full max-w-md bg-white rounded-lg shadow-lg dark:bg-gray-700">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white"
-        >
-          <IoClose className="w-4 h-4" />
-        </button>
+        <CloseButton onClose={onClose} />
         <div className="p-5 text-center">
           <div className="flex flex-col items-center justify-center">
             <IoAlertCircleOutline className="w-11 h-11 text-gray-500 dark:text-gray-400" />
