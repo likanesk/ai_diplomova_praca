@@ -11,7 +11,7 @@ import { callGetAllBuckets } from "@/app/services/bucket/bucketService";
 import { callGetAllDatasets } from "@/app/services/dataset/datasetService";
 import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
 
 interface Bucket {
@@ -31,6 +31,7 @@ export default function ClassPage() {
   const [selectedDataset, setSelectedDataset] = useState<string>("");
 
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const fetchBuckets = useCallback(async () => {
     setLoading(true);
@@ -121,6 +122,16 @@ export default function ClassPage() {
     }
   };
 
+  const handleRowClick = (
+    bucketName: string,
+    datasetName: string,
+    className: string
+  ) => {
+    router.push(
+      `/pages/sample?bucket=${bucketName}&dataset=${datasetName}&class=${className}`
+    );
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -166,13 +177,17 @@ export default function ClassPage() {
         description="A class is a collection of data within a dataset, typically representing a specific type or category of data."
       >
         {classes.map((cls, index) => (
-          <TableRow key={index}>
+          <TableRow
+            key={index}
+            onClick={() => handleRowClick(selectedBucket, selectedDataset, cls)}
+          >
             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
               {cls}
             </td>
             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSelectedClass(cls);
                   setIsModalOpen(true);
                 }}
