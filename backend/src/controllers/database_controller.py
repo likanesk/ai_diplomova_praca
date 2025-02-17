@@ -3,7 +3,7 @@ import re
 import tempfile
 import logging
 import zipfile
-from fastapi import HTTPException, File, UploadFile
+from fastapi import HTTPException, File, Query, UploadFile
 from ..utils.minio_client import get_minio_client
 from ..utils.minio_validators import check_bucket_exists, check_database_exists
 from minio.error import S3Error
@@ -200,7 +200,12 @@ async def validate_flat_zip_structure(temp_dir: str, expected_num_classes: int, 
 
     return True
 
-async def upload_zip(bucket_name: str, file: UploadFile = File(...), expected_num_classes: int = 4, expected_num_files_per_class: int = 200):
+async def upload_zip(
+    bucket_name: str,
+    expected_num_classes: int = Query(..., description="Expected number of classes"),
+    expected_num_files_per_class: int = Query(..., description="Expected number of files per class"),
+    file: UploadFile = File(..., description="ZIP file to upload")
+):
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="File is not a zip.")
 

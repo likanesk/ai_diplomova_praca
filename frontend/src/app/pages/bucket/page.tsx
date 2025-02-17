@@ -79,6 +79,9 @@ export default function BucketPage() {
     }
   };
 
+  const isCreateDisabled =
+    inputBucketName.length < 3 || inputBucketName.length > 63;
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -98,8 +101,11 @@ export default function BucketPage() {
           required
           value={inputBucketName}
           onChange={(value) => setInputBucketName(value)}
+          pattern="^[a-z0-9]{0,63}$"
         />
-        <Button type="submit">Create</Button>
+        <Button type="submit" disabled={isCreateDisabled}>
+          Create
+        </Button>
       </form>
 
       <Table

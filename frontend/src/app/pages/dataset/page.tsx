@@ -6,11 +6,18 @@ import { IoTrashOutline } from "react-icons/io5";
 import {
   callGetAllDatasets,
   callRemoveDataset,
+  callUploadZip,
 } from "@/app/services/dataset/datasetService";
 import { callGetAllBuckets } from "@/app/services/bucket/bucketService";
 import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
 import { useRouter, useSearchParams } from "next/navigation";
+import InputField from "@/app/components/InputField";
+import Button from "@/app/components/Button";
+import Dropdown from "@/app/components/Dropdown";
+import FileUpload from "@/app/components/FileUpload";
+import SuccessMessage from "@/app/components/SuccessMessage";
+import ErrorMessage from "@/app/components/ErrorMessage";
 
 interface Bucket {
   name: string;
@@ -25,6 +32,12 @@ export default function DatasetPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<string>("");
+  const [inputBucketName, setInputBucketName] = useState("");
+  const [inputExpectedNumClasses, setInputExpectedNumClasses] = useState("");
+  const [inputExpectedNumFilesPerClass, setInputExpectedNumFilesPerClass] =
+    useState("");
+  const [inputFile, setInputFile] = useState<File | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -92,36 +105,106 @@ export default function DatasetPage() {
     router.push(`/pages/class?bucket=${bucketName}&dataset=${datasetName}`);
   };
 
+  const handleUploadZip = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inputFile || !inputBucketName) {
+      setError("Please select a file and a bucket.");
+      return;
+    }
+
+    try {
+      await callUploadZip(
+        inputBucketName,
+        parseInt(inputExpectedNumClasses),
+        parseInt(inputExpectedNumFilesPerClass),
+        inputFile
+      );
+      fetchDatasets();
+      setInputBucketName("");
+      setInputExpectedNumClasses("");
+      setInputExpectedNumFilesPerClass("");
+      setInputFile(null);
+      setShowSuccessModal(true);
+      setError("");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to upload dataset in bucket: ${inputBucketName}`
+      );
+    }
+  };
+
+  const isUploadDisabled =
+    !inputBucketName ||
+    !inputFile ||
+    !inputExpectedNumClasses ||
+    !inputExpectedNumFilesPerClass;
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return <div>{error}</div>;
-  }
-
   return (
     <div>
+      {error && <ErrorMessage message={error} onClose={() => setError("")} />}
+
+      <form className="max-w-sm mx-auto my-4" onSubmit={handleUploadZip}>
+        <Dropdown
+          id="bucket-dropdown"
+          label="Select Bucket to upload db"
+          value={inputBucketName}
+          onChange={setInputBucketName}
+          options={buckets.map((bucket) => ({
+            value: bucket.name,
+            label: bucket.name,
+          }))}
+          placeholder="Choose a bucket"
+        />
+        <InputField
+          label="Expected number of classes"
+          type="text"
+          id="classcount"
+          name="classcount"
+          required
+          value={inputExpectedNumClasses}
+          onChange={(value) => setInputExpectedNumClasses(value)}
+          pattern="^[0-9]*$"
+        />
+        <InputField
+          label="Expected number of samples in class"
+          type="text"
+          id="samplecount"
+          name="samplecount"
+          required
+          value={inputExpectedNumFilesPerClass}
+          onChange={(value) => setInputExpectedNumFilesPerClass(value)}
+          pattern="^[0-9]*$"
+        />
+        <FileUpload
+          id="file_input"
+          label="Upload file"
+          helpText=".ZIP file is accepted"
+          onChange={(file) => setInputFile(file)}
+        />
+        <Button type="submit" disabled={isUploadDisabled}>
+          Upload
+        </Button>
+      </form>
+
       <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
-        <label
-          htmlFor="bucket-select"
-          className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-        >
-          Select Bucket
-        </label>
-        <select
+        <Dropdown
           id="bucket-select"
+          label="Select Bucket"
           value={selectedBucket}
-          onChange={(e) => setSelectedBucket(e.target.value)}
-          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-        >
-          <option value="">Choose a bucket</option>
-          {buckets.map((bucket) => (
-            <option key={bucket.name} value={bucket.name}>
-              {bucket.name}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedBucket}
+          options={buckets.map((bucket) => ({
+            value: bucket.name,
+            label: bucket.name,
+          }))}
+          placeholder="Choose a bucket"
+        />
       </div>
 
       <Table
@@ -159,6 +242,10 @@ export default function DatasetPage() {
         onConfirm={handleDelete}
         name={selectedDataset || ""}
       />
+
+      {showSuccessModal && (
+        <SuccessMessage onClose={() => setShowSuccessModal(false)} />
+      )}
     </div>
   );
 }

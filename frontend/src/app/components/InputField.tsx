@@ -12,6 +12,7 @@ type InputFieldProps = {
   value?: string;
   onChange?: (value: string) => void;
   error?: string;
+  pattern?: string;
 };
 
 const InputField = ({
@@ -24,11 +25,12 @@ const InputField = ({
   value,
   onChange,
   error,
+  pattern,
 }: InputFieldProps) => {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value;
 
-    if (/^[a-z0-9]{0,63}$/.test(inputValue)) {
+    if (!pattern || new RegExp(pattern).test(inputValue)) {
       onChange?.(inputValue);
     }
   };
