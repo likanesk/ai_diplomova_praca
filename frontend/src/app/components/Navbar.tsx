@@ -7,6 +7,7 @@ import {
   IoLogInOutline,
   IoServerOutline,
 } from "react-icons/io5";
+import CustomLink from "./CustomLink";
 
 export default function Navbar() {
   return (
@@ -23,15 +24,16 @@ export default function Navbar() {
             </span>
           </Link>
           <div className="flex items-center space-x-6 rtl:space-x-reverse">
-            <Link
+            <CustomLink
               href="/pages/login"
-              className="text-sm text-blue-600 dark:text-blue-500 hover:underline"
+              icon={
+                <IoLogInOutline className="w-5 h-5 text-blue-500 dark:text-white" />
+              }
+              iconPosition="left"
+              useFlex
             >
-              <div className="flex">
-                <IoLogInOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
-                Login
-              </div>
-            </Link>
+              Login
+            </CustomLink>
           </div>
         </div>
       </nav>

@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { IoTrashOutline } from "react-icons/io5";
 import {
   callGetAllSamples,
-  callRemoveDataset,
+  callRemoveSample,
 } from "@/app/services/sample/sampleService";
 import { callGetAllBuckets } from "@/app/services/bucket/bucketService";
 import { callGetAllDatasets } from "@/app/services/dataset/datasetService";
@@ -160,7 +160,7 @@ export default function SamplePage() {
   const handleDelete = async () => {
     if (selectedSample && selectedBucket && selectedDataset && selectedClass) {
       try {
-        await callRemoveDataset(
+        await callRemoveSample(
           selectedBucket,
           selectedDataset,
           selectedClass,
