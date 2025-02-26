@@ -6,9 +6,13 @@ import Button from "./Button";
 
 interface SuccessMessageProps {
   onClose: () => void;
+  message: string;
 }
 
-export default function SuccessMessage({ onClose }: SuccessMessageProps) {
+export default function SuccessMessage({
+  onClose,
+  message,
+}: SuccessMessageProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex justify-center items-center bg-black bg-opacity-50"
@@ -26,7 +30,7 @@ export default function SuccessMessage({ onClose }: SuccessMessageProps) {
             <span className="sr-only">Success</span>
           </div>
           <p className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Bucket was successfully created!
+            {message}
           </p>
           <Button type="button" onClick={onClose}>
             Continue

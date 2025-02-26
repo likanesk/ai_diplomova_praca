@@ -148,7 +148,10 @@ export default function BucketPage() {
       />
 
       {showSuccessModal && (
-        <SuccessMessage onClose={() => setShowSuccessModal(false)} />
+        <SuccessMessage
+          onClose={() => setShowSuccessModal(false)}
+          message={`Bucket was successfully created!`}
+        />
       )}
     </div>
   );

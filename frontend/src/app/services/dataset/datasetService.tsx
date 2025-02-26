@@ -1,4 +1,4 @@
-export const callUploadZip = async (
+export const callUploadZipForClassification = async (
   bucketName: string,
   expectedNumClasses: number,
   expectedNumFilesPerClass: number,
@@ -12,7 +12,7 @@ export const callUploadZip = async (
   const formData = new FormData();
   formData.append("file", file);
 
-  const url = `http://localhost:8000/databases/upload-zip/${bucketName}?expected_num_classes=${expectedNumClasses}&expected_num_files_per_class=${expectedNumFilesPerClass}`;
+  const url = `http://localhost:8000/databases/upload-classification/${bucketName}?expected_num_classes=${expectedNumClasses}&expected_num_files_per_class=${expectedNumFilesPerClass}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -23,7 +23,65 @@ export const callUploadZip = async (
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upload dataset");
+    throw new Error("Failed to upload dataset for classification");
+  }
+
+  return response.json();
+};
+
+export const callUploadZipForRegression = async (
+  bucketName: string,
+  file: File
+) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `http://localhost:8000/databases/upload-regression/${bucketName}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upload dataset for regression");
+  }
+
+  return response.json();
+};
+
+export const callUploadZipForDetection = async (
+  bucketName: string,
+  file: File
+) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const url = `http://localhost:8000/databases/upload-detection/${bucketName}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upload dataset for detection");
   }
 
   return response.json();
