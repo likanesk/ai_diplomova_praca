@@ -3,7 +3,7 @@
 import RemoveDialog from "@/app/components/RemoveDialog";
 import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
-import { IoTrashOutline } from "react-icons/io5";
+import { IoClose, IoInformationOutline, IoTrashOutline } from "react-icons/io5";
 import {
   callGetAllDatasets,
   callRemoveDataset,
@@ -22,6 +22,7 @@ import FileUpload from "@/app/components/FileUpload";
 import SuccessMessage from "@/app/components/SuccessMessage";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import { useAuth } from "@/app/hooks/useAuth";
+import IconButton from "@/app/components/IconButton";
 
 interface Bucket {
   name: string;
@@ -52,6 +53,7 @@ export default function DatasetPage() {
     useState("");
   const [inputFile, setInputFile] = useState<File | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showExample, setShowExample] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -221,12 +223,23 @@ export default function DatasetPage() {
                 />
               </>
             )}
-            <FileUpload
-              id="file_input"
-              label="Upload file"
-              helpText=".ZIP file is accepted"
-              onChange={(file) => setInputFile(file)}
-            />
+            <div className="flex">
+              <FileUpload
+                id="file_input"
+                label="Upload file"
+                helpText=".ZIP file is accepted"
+                onChange={(file) => setInputFile(file)}
+              />
+              <IconButton
+                icon={<IoInformationOutline className="w-5 h-5" />}
+                onClick={(e) => {
+                  e?.preventDefault();
+                  setShowExample(!showExample);
+                }}
+                className="ml-2"
+              />
+            </div>
+
             <Button
               className="mx-auto mt-2"
               type="submit"
@@ -237,23 +250,36 @@ export default function DatasetPage() {
           </form>
         </div>
 
-        {validationType === "classification" ? (
-          <Image
-            src="/zip-classification-structure.png"
-            width={220}
-            height={220}
-            alt="Example of ZIP file structure for classification"
-            className="md:ml-10 mt-8 md:mt-0"
-          />
-        ) : (
-          <Image
-            src="/zip-regression-and-detection-structure.png"
-            width={250}
-            height={250}
-            alt="Example of ZIP file structure for regression and detection"
-            className="md:ml-10 mt-8 md:mt-0"
-          />
-        )}
+        <div className="flex flex-col items-center">
+          {showExample && (
+            <div className="relative">
+              {validationType === "classification" ? (
+                <Image
+                  src="/zip-classification-structure.png"
+                  width={220}
+                  height={220}
+                  alt="Example of ZIP file structure for classification"
+                  className="md:ml-10 mt-8 md:mt-0"
+                />
+              ) : (
+                <Image
+                  src="/zip-regression-and-detection-structure.png"
+                  width={250}
+                  height={250}
+                  alt="Example of ZIP file structure for regression and detection"
+                  className="md:ml-10 mt-8 md:mt-0"
+                />
+              )}
+              <IconButton
+                icon={<IoClose />}
+                onClick={() => setShowExample(false)}
+                position="absolute"
+                top="top-0"
+                right="right-0"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">

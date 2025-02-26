@@ -1,8 +1,8 @@
 "use client";
 
-import { IoCheckmarkOutline } from "react-icons/io5";
-import CloseButton from "./CloseButton";
+import { IoCheckmarkOutline, IoClose } from "react-icons/io5";
 import Button from "./Button";
+import IconButton from "./IconButton";
 
 interface SuccessMessageProps {
   onClose: () => void;
@@ -22,7 +22,13 @@ export default function SuccessMessage({
         className="relative p-4 w-full max-w-md bg-white rounded-lg shadow dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
-        <CloseButton onClose={onClose} />
+        <IconButton
+          icon={<IoClose className="w-4 h-4" />}
+          onClick={onClose}
+          position="absolute"
+          top="top-2"
+          right="right-2"
+        />
 
         <div className="p-4 text-center">
           <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 p-2 flex items-center justify-center mx-auto mb-3.5">
