@@ -6,7 +6,7 @@ from datetime import timedelta
 from fastapi import status
 from pydantic import BaseModel
 from ..utils.config import MINIO_ACCESS_KEY, MINIO_ALIAS, MINIO_SECRET_KEY, MINIO_SERVER
-from ..utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from ..utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_current_user
 
 router = APIRouter()
 
@@ -45,6 +45,9 @@ async def login(user: User):
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+async def verify_token(current_user: str = Depends(get_current_user)):
+    return {"message": "Token is valid", "user": current_user}
 
 def user_exists(username: str) -> bool:
     try:

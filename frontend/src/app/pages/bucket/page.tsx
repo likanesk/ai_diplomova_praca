@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import InputField from "@/app/components/InputField";
 import SuccessMessage from "@/app/components/SuccessMessage";
 import Button from "@/app/components/Button";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface Bucket {
   name: string;
@@ -21,6 +22,8 @@ interface Bucket {
 }
 
 export default function BucketPage() {
+  useAuth();
+
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

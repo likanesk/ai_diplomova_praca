@@ -13,6 +13,7 @@ import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
 import { useRouter, useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface Bucket {
   name: string;
@@ -20,6 +21,8 @@ interface Bucket {
 }
 
 export default function ClassPage() {
+  useAuth();
+
   const [classes, setClasses] = useState<string[]>([]);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [datasets, setDatasets] = useState<string[]>([]);

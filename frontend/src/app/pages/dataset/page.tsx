@@ -21,6 +21,7 @@ import Dropdown from "@/app/components/Dropdown";
 import FileUpload from "@/app/components/FileUpload";
 import SuccessMessage from "@/app/components/SuccessMessage";
 import ErrorMessage from "@/app/components/ErrorMessage";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface Bucket {
   name: string;
@@ -34,6 +35,8 @@ const validationTypes = [
 ];
 
 export default function DatasetPage() {
+  useAuth();
+
   const [datasets, setDatasets] = useState<string[]>([]);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
