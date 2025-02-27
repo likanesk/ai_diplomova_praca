@@ -14,6 +14,7 @@ import TableRow from "@/app/components/TableRow";
 import { useRouter, useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
 import { useAuth } from "@/app/hooks/useAuth";
+import ErrorMessage from "@/app/components/ErrorMessage";
 
 interface Bucket {
   name: string;
@@ -32,6 +33,8 @@ export default function ClassPage() {
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [selectedBucket, setSelectedBucket] = useState<string>("");
   const [selectedDataset, setSelectedDataset] = useState<string>("");
+
+  const [noClassesError, setNoClassesError] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -74,9 +77,16 @@ export default function ClassPage() {
 
     setLoading(true);
     setError("");
+    setNoClassesError(false);
+
     try {
       const data = await callGetAllClasses(selectedBucket, selectedDataset);
-      setClasses(data?.classes || []);
+      const fetchedClasses = data?.classes || [];
+
+      setClasses(fetchedClasses);
+      if (fetchedClasses.length === 0) {
+        setNoClassesError(true);
+      }
     } catch {
       setError("Failed to fetch classes");
     } finally {
@@ -173,6 +183,13 @@ export default function ClassPage() {
           placeholder="Choose a dataset"
         />
       </div>
+
+      {noClassesError && (
+        <ErrorMessage
+          message="Selected dataset does not contain any class!"
+          onClose={() => setNoClassesError(false)}
+        />
+      )}
 
       <Table
         headers={["Class Name", "Remove"]}

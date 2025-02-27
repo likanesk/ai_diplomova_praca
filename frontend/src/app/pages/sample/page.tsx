@@ -35,6 +35,7 @@ export default function SamplePage() {
   const [selectedBucket, setSelectedBucket] = useState<string>("");
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
+  const [isClassification, setIsClassification] = useState<boolean>(false);
 
   const searchParams = useSearchParams();
 
@@ -86,6 +87,7 @@ export default function SamplePage() {
       const data = await callGetAllClasses(selectedBucket, selectedDataset);
       setClasses(data?.classes || []);
       setSamples([]);
+      setIsClassification(data?.classes && data.classes.length > 0);
     } catch {
       setError("Failed to fetch classes");
     } finally {
@@ -94,7 +96,7 @@ export default function SamplePage() {
   }, [selectedBucket, selectedDataset]);
 
   const fetchSamples = useCallback(async () => {
-    if (!selectedBucket || !selectedDataset || !selectedClass) {
+    if (!selectedBucket || !selectedDataset) {
       return;
     }
 
@@ -104,7 +106,7 @@ export default function SamplePage() {
       const data = await callGetAllSamples(
         selectedBucket,
         selectedDataset,
-        selectedClass
+        isClassification ? selectedClass : undefined
       );
       setSamples(data?.samples || []);
     } catch {
@@ -112,7 +114,7 @@ export default function SamplePage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedBucket, selectedDataset, selectedClass]);
+  }, [selectedBucket, selectedDataset, selectedClass, isClassification]);
 
   useEffect(() => {
     fetchBuckets();
@@ -138,12 +140,18 @@ export default function SamplePage() {
   }, [selectedBucket, selectedDataset, fetchClasses]);
 
   useEffect(() => {
-    if (selectedBucket && selectedDataset && selectedClass) {
+    if (selectedBucket && selectedDataset) {
       fetchSamples();
     } else {
       setSamples([]);
     }
-  }, [selectedBucket, selectedDataset, selectedClass, fetchSamples]);
+  }, [
+    selectedBucket,
+    selectedDataset,
+    selectedClass,
+    isClassification,
+    fetchSamples,
+  ]);
 
   useEffect(() => {
     const bucket = searchParams.get("bucket");
@@ -161,13 +169,13 @@ export default function SamplePage() {
   }, [searchParams]);
 
   const handleDelete = async () => {
-    if (selectedSample && selectedBucket && selectedDataset && selectedClass) {
+    if (selectedSample && selectedBucket && selectedDataset) {
       try {
         await callRemoveSample(
           selectedBucket,
           selectedDataset,
-          selectedClass,
-          selectedSample
+          selectedSample,
+          isClassification ? selectedClass : undefined
         );
 
         setSamples((prevSamples) =>
@@ -223,23 +231,29 @@ export default function SamplePage() {
           placeholder="Choose a dataset"
         />
 
-        <Dropdown
-          id="class-select"
-          label="Select Class"
-          value={selectedClass}
-          onChange={(value) => setSelectedClass(value)}
-          options={classes.map((cls) => ({
-            value: cls,
-            label: cls,
-          }))}
-          placeholder="Choose a class"
-        />
+        {isClassification && (
+          <Dropdown
+            id="class-select"
+            label="Select Class"
+            value={selectedClass}
+            onChange={(value) => setSelectedClass(value)}
+            options={classes.map((cls) => ({
+              value: cls,
+              label: cls,
+            }))}
+            placeholder="Choose a class"
+          />
+        )}
       </div>
 
       <Table
         headers={["Sample Name", "Remove"]}
         caption="Samples"
-        description="A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
+        description={
+          isClassification
+            ? "A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
+            : "A sample represents data within a dataset, which in our case is an image or JSON file with metadata about all the images."
+        }
       >
         {samples.map((sample, index) => (
           <TableRow key={index}>

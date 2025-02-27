@@ -23,6 +23,7 @@ import SuccessMessage from "@/app/components/SuccessMessage";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import { useAuth } from "@/app/hooks/useAuth";
 import IconButton from "@/app/components/IconButton";
+import { callGetAllClasses } from "@/app/services/class/classService";
 
 interface Bucket {
   name: string;
@@ -117,8 +118,21 @@ export default function DatasetPage() {
     }
   };
 
-  const handleRowClick = (bucketName: string, datasetName: string) => {
-    router.push(`/pages/class?bucket=${bucketName}&dataset=${datasetName}`);
+  const handleRowClick = async (bucketName: string, datasetName: string) => {
+    try {
+      const classes = await callGetAllClasses(bucketName, datasetName);
+      if (classes?.classes && classes.classes.length > 0) {
+        // Classification -> navigate to ClassPage
+        router.push(`/pages/class?bucket=${bucketName}&dataset=${datasetName}`);
+      } else {
+        // Regression or Detection -> navigate to SamplePage
+        router.push(
+          `/pages/sample?bucket=${bucketName}&dataset=${datasetName}`
+        );
+      }
+    } catch {
+      setError("Failed to determine dataset type");
+    }
   };
 
   const handleUploadZip = async (e: React.FormEvent) => {
