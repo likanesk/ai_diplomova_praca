@@ -344,6 +344,8 @@ export default function DatasetPage() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleDelete}
         name={selectedDataset || ""}
+        error={error}
+        onErrorClose={() => setError("")}
       />
 
       {showSuccessModal && (

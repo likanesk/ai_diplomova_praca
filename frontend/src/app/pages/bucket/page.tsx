@@ -54,14 +54,12 @@ export default function BucketPage() {
     if (selectedBucket) {
       try {
         await callRemoveBucket(selectedBucket.name);
-
         setBuckets((prevBuckets) =>
           prevBuckets.filter((bucket) => bucket.name !== selectedBucket.name)
         );
-
         setIsModalOpen(false);
       } catch {
-        setError(`Failed to delete bucket: ${selectedBucket.name}`);
+        setError(`Failed to delete bucket: ${selectedBucket.name}.`);
       }
     }
   };
@@ -78,7 +76,7 @@ export default function BucketPage() {
       setInputBucketName("");
       setShowSuccessModal(true);
     } catch {
-      setError(`Failed to create bucket: ${inputBucketName}`);
+      setError(`Failed to create bucket: ${inputBucketName}.`);
     }
   };
 
@@ -87,10 +85,6 @@ export default function BucketPage() {
 
   if (loading) {
     return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
   }
 
   return (
@@ -114,10 +108,7 @@ export default function BucketPage() {
       <Table
         headers={["Bucket Name", "Creation Date", "Remove"]}
         caption="Buckets"
-        description="A bucket is similar to a folder or directory in a filesystem, where
-            each bucket can hold an arbitrary number of objects. In our case,
-            the bucket contains image datasets, which are collections of images
-            that we can use for processing or analysis."
+        description="A bucket is similar to a folder or directory in a filesystem, where each bucket can hold an arbitrary number of objects. In our case, the bucket contains image datasets, which are collections of images that we can use for processing or analysis."
       >
         {buckets.map((bucket, index) => (
           <TableRow key={index} onClick={() => handleRowClick(bucket.name)}>
@@ -148,6 +139,8 @@ export default function BucketPage() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleDelete}
         name={selectedBucket?.name || ""}
+        error={error}
+        onErrorClose={() => setError("")}
       />
 
       {showSuccessModal && (

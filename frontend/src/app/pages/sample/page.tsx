@@ -108,7 +108,12 @@ export default function SamplePage() {
         selectedDataset,
         isClassification ? selectedClass : undefined
       );
-      setSamples(data?.samples || []);
+
+      const filteredSamples = (data?.samples || []).filter(
+        (sample: string) => !sample.includes("/")
+      );
+
+      setSamples(filteredSamples);
     } catch {
       setError("Failed to fetch samples");
     } finally {
@@ -191,10 +196,6 @@ export default function SamplePage() {
 
   if (loading) {
     return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
   }
 
   return (
@@ -280,6 +281,8 @@ export default function SamplePage() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleDelete}
         name={selectedSample || ""}
+        error={error}
+        onErrorClose={() => setError("")}
       />
     </div>
   );

@@ -149,10 +149,6 @@ export default function ClassPage() {
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return <div>{error}</div>;
-  }
-
   return (
     <div>
       <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
@@ -225,6 +221,8 @@ export default function ClassPage() {
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleDelete}
         name={selectedClass || ""}
+        error={error}
+        onErrorClose={() => setError("")}
       />
     </div>
   );

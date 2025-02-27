@@ -2,12 +2,15 @@
 
 import { IoAlertCircleOutline, IoClose } from "react-icons/io5";
 import IconButton from "./IconButton";
+import ErrorMessage from "./ErrorMessage";
 
 interface RemoveDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   name: string;
+  error?: string;
+  onErrorClose?: () => void;
 }
 
 export default function RemoveDialog({
@@ -15,6 +18,8 @@ export default function RemoveDialog({
   onClose,
   onConfirm,
   name,
+  error,
+  onErrorClose,
 }: RemoveDialogProps) {
   if (!isOpen) return null;
 
@@ -35,6 +40,12 @@ export default function RemoveDialog({
               Are you sure you want to delete &quot;{name}&quot;?
             </h3>
           </div>
+
+          {error && (
+            <div className="mb-4">
+              <ErrorMessage message={error} onClose={onErrorClose} />
+            </div>
+          )}
 
           <button
             onClick={onConfirm}
