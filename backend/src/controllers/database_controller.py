@@ -1,9 +1,12 @@
 import os
+from pathlib import Path
 import re
+import shutil
 import tempfile
 import logging
 import zipfile
 from fastapi import FastAPI, HTTPException, File, Query, UploadFile
+from fastapi.responses import FileResponse
 from ..validators.classification_validator import ClassificationValidator
 from ..validators.detection_validator import DetectionValidator
 from ..validators.regression_validator import RegressionValidator
@@ -121,30 +124,45 @@ async def get_all_databases(bucket_name: str):
 
 async def download_database(bucket_name: str, database_name: str):
     """
-    Downloads all files from a specified database in the S3 bucket to a local database.
-    
-    :param bucket_name: The name of the S3 bucket.
-    :param database_name: The name of the database inside the bucket.
-    :return: A message indicating the status of the download.
+    Downloads all files from a specified database in the S3 bucket to the system's Downloads folder,
+    compresses them into a ZIP archive, and returns the archive for download.
+
+    :param bucket_name: The name of the S3 bucket where the database is stored.
+    :param database_name: The name of the database (prefix) inside the bucket.
+    :return: A `FileResponse` object containing the ZIP archive of the downloaded files.
+             The archive is named after the database and saved in the system's Downloads folder.
     """
     try:
         await check_bucket_exists(bucket_name)
 
+        # Path to Downloads folder
+        downloads_path = str(Path.home() / "Downloads")
+        dir_path = os.path.join(downloads_path, database_name)
+
+        # Create directory if it doesn't exist
+        os.makedirs(dir_path, exist_ok=True)
+
+        # List objects in the bucket
         objects = client.list_objects(bucket_name, prefix=database_name, recursive=True)
-        dir_path = "/tmp"
 
+        # Download each object
         for obj in objects:
-            file_path = f"{dir_path}/{obj.object_name}"
+            file_path = os.path.join(dir_path, os.path.basename(obj.object_name))
             client.fget_object(bucket_name, obj.object_name, file_path)
-            logger.info(f"File '{obj.object_name}' downloaded successfully to '{file_path}'.")
 
-        return {"message": f"All files from database '{database_name}' downloaded successfully.", "database_location": dir_path}
+        # Create ZIP archive
+        zip_path = os.path.join(downloads_path, f"{database_name}.zip")
+        shutil.make_archive(base_name=os.path.join(downloads_path, database_name), format="zip", root_dir=dir_path)
+
+        # Remove temporary directory
+        shutil.rmtree(dir_path)
+
+        # Return the ZIP file
+        return FileResponse(path=zip_path, media_type='application/zip', filename=f"{database_name}.zip")
     
     except S3Error as e:
-        logger.error(f"Failed to download database '{database_name}' from bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to download database: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error occurred while downloading database '{database_name}' from bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 async def delete_database(bucket_name: str, database_name: str):

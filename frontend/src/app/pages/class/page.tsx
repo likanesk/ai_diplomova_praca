@@ -2,8 +2,9 @@
 
 import RemoveDialog from "@/app/components/RemoveDialog";
 import { useEffect, useState, useCallback } from "react";
-import { IoTrashOutline } from "react-icons/io5";
+import { IoDownloadOutline, IoTrashOutline } from "react-icons/io5";
 import {
+  callDownloadClass,
   callGetAllClasses,
   callRemoveClass,
 } from "@/app/services/class/classService";
@@ -135,6 +136,18 @@ export default function ClassPage() {
     }
   };
 
+  const handleDownload = async (
+    bucketName: string,
+    datasetName: string,
+    className: string
+  ) => {
+    try {
+      await callDownloadClass(bucketName, datasetName, className);
+    } catch {
+      setError("Failed to download class");
+    }
+  };
+
   const handleRowClick = (
     bucketName: string,
     datasetName: string,
@@ -188,7 +201,7 @@ export default function ClassPage() {
       )}
 
       <Table
-        headers={["Class Name", "Remove"]}
+        headers={["Class Name", "Remove", "Download"]}
         caption="Classes"
         description="A class is a collection of data within a dataset, typically representing a specific type or category of data."
       >
@@ -210,6 +223,17 @@ export default function ClassPage() {
                 className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
               >
                 <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+              </button>
+            </td>
+            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(selectedBucket, selectedDataset, cls);
+                }}
+                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+              >
+                <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
               </button>
             </td>
           </TableRow>

@@ -111,6 +111,46 @@ export const callGetAllDatasets = async (bucketName: string) => {
   return await response.json();
 };
 
+export const callDownloadDataset = async (
+  bucketName: string,
+  datasetName: string
+) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
+  }
+
+  const response = await fetch(
+    `http://localhost:8000/databases/download-database/${bucketName}/${datasetName}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to download dataset");
+  }
+
+  const blob = await response.blob();
+
+  const downloadUrl = window.URL.createObjectURL(blob);
+
+  // Temporary download link
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = `${datasetName}.zip`;
+  document.body.appendChild(a);
+
+  a.click();
+
+  document.body.removeChild(a);
+
+  window.URL.revokeObjectURL(downloadUrl);
+};
+
 export const callRemoveDataset = async (
   bucketName: string,
   databaseName: string

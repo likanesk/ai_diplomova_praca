@@ -2,8 +2,9 @@
 
 import RemoveDialog from "@/app/components/RemoveDialog";
 import { useEffect, useState, useCallback } from "react";
-import { IoTrashOutline } from "react-icons/io5";
+import { IoDownloadOutline, IoTrashOutline } from "react-icons/io5";
 import {
+  callDownloadSample,
   callGetAllSamples,
   callRemoveSample,
 } from "@/app/services/sample/sampleService";
@@ -194,6 +195,28 @@ export default function SamplePage() {
     }
   };
 
+  const handleDownload = async (
+    bucketName: string,
+    datasetName: string,
+    sampleName: string,
+    className?: string
+  ) => {
+    if (bucketName && datasetName && sampleName) {
+      try {
+        await callDownloadSample(
+          bucketName,
+          datasetName,
+          sampleName,
+          isClassification ? className : undefined
+        );
+      } catch {
+        setError("Failed to download sample. Please try again.");
+      }
+    } else {
+      console.error("Missing required parameters for download");
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -248,7 +271,7 @@ export default function SamplePage() {
       </div>
 
       <Table
-        headers={["Sample Name", "Remove"]}
+        headers={["Sample Name", "Remove", "Download"]}
         caption="Samples"
         description={
           isClassification
@@ -270,6 +293,21 @@ export default function SamplePage() {
                 className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
               >
                 <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+              </button>
+            </td>
+            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <button
+                onClick={() => {
+                  handleDownload(
+                    selectedBucket,
+                    selectedDataset,
+                    sample,
+                    selectedClass
+                  );
+                }}
+                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+              >
+                <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
               </button>
             </td>
           </TableRow>

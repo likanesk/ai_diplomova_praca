@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 from fastapi import File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from minio import S3Error
@@ -104,32 +105,44 @@ async def get_all_samples_for_regression_detection(bucket_name: str, database_na
         logger.error(f"Failed to retrieve samples from '{database_name}' of bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve samples: {str(e)}")
     
-async def download_sample(bucket_name: str, database_name: str, class_name: str, sample_name: str):
+async def download_sample(bucket_name: str, database_name: str, sample_name: str, class_name: str = None):
     """
-    Downloads a specific sample from a class within a database in an S3 bucket.
+    Downloads a specific sample (file) from a class within a database in the S3 bucket,
+    and returns the file for download.
 
-    :param bucket_name: The name of the S3 bucket.
-    :param database_name: The database within the bucket.
-    :param class_name: The class (subdirectory) within the database.
+    :param bucket_name: The name of the S3 bucket where the database is stored.
+    :param database_name: The name of the database (prefix) inside the bucket.
+    :param class_name: The name of the class (subdirectory) inside the database.
     :param sample_name: The name of the sample (file) to download.
-    :return: The file as a download.
+    :return: A `FileResponse` object containing the downloaded file.
     """
-
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
-    await check_class_exists(bucket_name, database_name, class_name)
-    await check_sample_exists_for_classification(bucket_name, database_name, class_name, sample_name)
-
-    file_path = f"{database_name}/{class_name}/{sample_name}"
-    temp_file_path = f"/tmp/{sample_name}"
-
     try:
-        client.fget_object(bucket_name, file_path, temp_file_path)
-        return FileResponse(path=temp_file_path, filename=sample_name, media_type='application/octet-stream')
-    except HTTPException as e:
-        raise e
+        await check_bucket_exists(bucket_name)
+        await check_database_exists(bucket_name, database_name)
+
+        if class_name:
+            await check_sample_exists_for_classification(bucket_name, database_name, class_name, sample_name)
+            file_path = f"{database_name}/{class_name}/{sample_name}"
+        else:
+            await check_sample_exists_for_regression_detection(bucket_name, database_name, sample_name)
+            file_path = f"{database_name}/{sample_name}"
+
+        # Path to the system's Downloads folder
+        downloads_path = str(Path.home() / "Downloads")
+        sample_download_path = os.path.join(downloads_path, sample_name)
+
+        # Download the sample file
+        client.fget_object(bucket_name, file_path, sample_download_path)
+
+        # Return the sample file as a downloadable file
+        return FileResponse(path=sample_download_path, filename=sample_name, media_type='application/octet-stream')
+    
+    except S3Error as e:
+        logger.error(f"Failed to download sample '{sample_name}' from class '{class_name}' in database '{database_name}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to download sample: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error occurred while downloading sample '{sample_name}' from class '{class_name}' in database '{database_name}' in bucket '{bucket_name}': {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
     
 async def delete_sample(bucket_name: str, database_name: str, sample_name: str, class_name: str = None):
     """

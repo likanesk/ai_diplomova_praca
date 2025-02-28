@@ -3,8 +3,14 @@
 import RemoveDialog from "@/app/components/RemoveDialog";
 import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
-import { IoClose, IoInformationOutline, IoTrashOutline } from "react-icons/io5";
 import {
+  IoClose,
+  IoDownloadOutline,
+  IoInformationOutline,
+  IoTrashOutline,
+} from "react-icons/io5";
+import {
+  callDownloadDataset,
   callGetAllDatasets,
   callRemoveDataset,
   callUploadZipForClassification,
@@ -173,6 +179,14 @@ export default function DatasetPage() {
     }
   };
 
+  const handleDownload = async (bucketName: string, datasetName: string) => {
+    try {
+      await callDownloadDataset(bucketName, datasetName);
+    } catch {
+      setError("Failed to download dataset");
+    }
+  };
+
   const isUploadDisabled =
     !validationType ||
     !inputBucketName ||
@@ -311,7 +325,7 @@ export default function DatasetPage() {
       </div>
 
       <Table
-        headers={["Dataset Name", "Remove"]}
+        headers={["Dataset Name", "Remove", "Download"]}
         caption="Datasets"
         description="A dataset is a collection of data, typically in a structured format, that can be used for analysis or processing."
       >
@@ -333,6 +347,17 @@ export default function DatasetPage() {
                 className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
               >
                 <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+              </button>
+            </td>
+            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(selectedBucket, dataset);
+                }}
+                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+              >
+                <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
               </button>
             </td>
           </TableRow>
