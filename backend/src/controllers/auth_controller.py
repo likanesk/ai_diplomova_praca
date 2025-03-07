@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
@@ -16,6 +17,8 @@ class User(BaseModel):
 
 async def register(user: User):
     try:
+        validate_password(user.password)
+
         setup_minio_alias()
 
         if user_exists(user.username):
@@ -84,3 +87,40 @@ def authenticate_user(username: str, password: str) -> bool:
         return True
     except subprocess.CalledProcessError:
         return False
+    
+def validate_password(password: str) -> bool:
+    """
+    Validates the password against security criteria.
+    Returns True if the password is valid, otherwise raises an HTTPException.
+    """
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters long."
+        )
+
+    if not re.search(r"[A-Z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one uppercase letter."
+        )
+
+    if not re.search(r"[a-z]", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one lowercase letter."
+        )
+
+    if not re.search(r"\d", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one digit."
+        )
+
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one special character."
+        )
+
+    return True

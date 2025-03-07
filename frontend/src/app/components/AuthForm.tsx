@@ -6,6 +6,7 @@ import { callLogin, callRegister } from "../services/auth/authService";
 import Button from "./Button";
 import InputField from "./InputField";
 import CustomLink from "./CustomLink";
+import ErrorMessage from "./ErrorMessage";
 
 interface AuthFormProps {
   isLogin: boolean;
@@ -88,7 +89,9 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
                   onChange={(value) => setConfirmPassword(value)}
                 />
               )}
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && (
+                <ErrorMessage message={error} onClose={() => setError("")} />
+              )}
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Loading..." : isLogin ? "Sign in" : "Sign up"}
               </Button>
