@@ -88,22 +88,26 @@ export default function BucketPage() {
   }
 
   return (
-    <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
-      <form className="max-w-sm mx-auto my-4" onSubmit={handleCreateBucket}>
-        <InputField
-          label="Bucket name"
-          type="text"
-          id="bucket"
-          name="bucket"
-          required
-          value={inputBucketName}
-          onChange={(value) => setInputBucketName(value)}
-          pattern="^[a-z0-9]{0,63}$"
-        />
-        <Button type="submit" disabled={isCreateDisabled}>
-          Create
-        </Button>
-      </form>
+    <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
+      <div className="max-w-sm mx-auto my-4">
+        <h1 className="pb-5 text-center">Bucket page</h1>
+
+        <form onSubmit={handleCreateBucket}>
+          <InputField
+            label="Bucket name"
+            type="text"
+            id="bucket"
+            name="bucket"
+            required
+            value={inputBucketName}
+            onChange={(value) => setInputBucketName(value)}
+            pattern="^[a-z0-9]{0,63}$"
+          />
+          <Button type="submit" disabled={isCreateDisabled}>
+            Create
+          </Button>
+        </form>
+      </div>
 
       <Table
         headers={["Bucket Name", "Creation Date", "Remove"]}

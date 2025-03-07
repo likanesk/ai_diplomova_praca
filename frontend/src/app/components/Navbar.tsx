@@ -55,23 +55,23 @@ export default function Navbar() {
               </li>
               <li>
                 <Link
-                  href="/pages/dataset"
+                  href="/pages/upload"
                   className="text-gray-900 dark:text-white hover:underline"
                 >
                   <div className="flex">
                     <IoServerOutline className="w-5 h-5 text-gray-800 dark:text-white mr-1" />
-                    Datasets
+                    Upload
                   </div>
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/pages/class"
+                  href="/pages/dataset"
                   className="text-gray-900 dark:text-white hover:underline"
                 >
                   <div className="flex">
                     <IoFolderOpenOutline className="w-5 h-5 text-gray-800 dark:text-white mr-1" />
-                    Classes
+                    Datasets
                   </div>
                 </Link>
               </li>

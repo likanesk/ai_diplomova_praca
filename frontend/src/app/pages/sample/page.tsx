@@ -222,8 +222,9 @@ export default function SamplePage() {
   }
 
   return (
-    <div>
-      <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
+    <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
+      <div className="max-w-sm mx-auto my-4">
+        <h1 className="pb-5 text-center">Sample page</h1>
         <Dropdown
           id="bucket-select"
           label="Select Bucket"
@@ -270,49 +271,51 @@ export default function SamplePage() {
         )}
       </div>
 
-      <Table
-        headers={["Sample Name", "Remove", "Download"]}
-        caption="Samples"
-        description={
-          isClassification
-            ? "A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
-            : "A sample represents data within a dataset, which in our case is an image or JSON file with metadata about all the images."
-        }
-      >
-        {samples.map((sample, index) => (
-          <TableRow key={index}>
-            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-              {sample}
-            </td>
-            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-              <button
-                onClick={() => {
-                  setSelectedSample(sample);
-                  setIsModalOpen(true);
-                }}
-                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-              >
-                <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
-              </button>
-            </td>
-            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-              <button
-                onClick={() => {
-                  handleDownload(
-                    selectedBucket,
-                    selectedDataset,
-                    sample,
-                    selectedClass
-                  );
-                }}
-                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-              >
-                <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
-              </button>
-            </td>
-          </TableRow>
-        ))}
-      </Table>
+      {samples.length > 0 && (
+        <Table
+          headers={["Sample Name", "Remove", "Download"]}
+          caption="Samples"
+          description={
+            isClassification
+              ? "A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
+              : "A sample represents data within a dataset, which in our case is an image or JSON file with metadata about all the images."
+          }
+        >
+          {samples.map((sample, index) => (
+            <TableRow key={index}>
+              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {sample}
+              </td>
+              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <button
+                  onClick={() => {
+                    setSelectedSample(sample);
+                    setIsModalOpen(true);
+                  }}
+                  className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                >
+                  <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+                </button>
+              </td>
+              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                <button
+                  onClick={() => {
+                    handleDownload(
+                      selectedBucket,
+                      selectedDataset,
+                      sample,
+                      selectedClass
+                    );
+                  }}
+                  className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                >
+                  <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
+                </button>
+              </td>
+            </TableRow>
+          ))}
+        </Table>
+      )}
 
       <RemoveDialog
         isOpen={isModalOpen}
