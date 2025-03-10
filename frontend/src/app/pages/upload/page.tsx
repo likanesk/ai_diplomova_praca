@@ -204,14 +204,37 @@ export default function UploadPage() {
                   className="md:ml-10 mt-8 md:mt-0"
                 />
               ) : (
-                <Image
-                  src="/zip-regression-and-detection-structure.png"
-                  width={250}
-                  height={250}
-                  alt="Example of ZIP file structure for regression and detection"
-                  className="md:ml-10 mt-8 md:mt-0"
-                />
+                <div className="flex items-start space-x-4 mt-8">
+                  <Image
+                    src="/zip-regression-and-detection-structure.png"
+                    width={250}
+                    height={250}
+                    alt="Example of ZIP file structure for regression and detection"
+                    className="flex-none"
+                  />
+
+                  {validationType === "regression" && (
+                    <Image
+                      src="/json-regression.png"
+                      width={450}
+                      height={250}
+                      alt="Example of JSON file structure for regression"
+                      className="flex-none"
+                    />
+                  )}
+
+                  {validationType === "detection" && (
+                    <Image
+                      src="/json-detection.png"
+                      width={250}
+                      height={200}
+                      alt="Example of JSON file structure for detection"
+                      className="flex-none"
+                    />
+                  )}
+                </div>
               )}
+
               <IconButton
                 icon={<IoClose />}
                 onClick={() => setShowExample(false)}

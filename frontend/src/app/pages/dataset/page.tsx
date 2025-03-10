@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
 import { useAuth } from "@/app/hooks/useAuth";
 import ErrorMessage from "@/app/components/ErrorMessage";
+import Pagination from "@/app/components/Pagination";
 
 interface Bucket {
   name: string;
@@ -41,6 +42,10 @@ export default function DatasetPage() {
   const [selectedBucket, setSelectedBucket] = useState<string>("");
   const [noDatasetsError, setNoDatasetsError] = useState(false);
   const [noClassesError, setNoClassesError] = useState(false);
+
+  const [currentDatasetPage, setCurrentDatasetPage] = useState(1);
+  const [currentClassPage, setCurrentClassPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -226,6 +231,25 @@ export default function DatasetPage() {
     }
   };
 
+  const indexOfLastDataset = currentDatasetPage * itemsPerPage;
+  const indexOfFirstDataset = indexOfLastDataset - itemsPerPage;
+  const currentDatasets = datasets.slice(
+    indexOfFirstDataset,
+    indexOfLastDataset
+  );
+
+  const indexOfLastClass = currentClassPage * itemsPerPage;
+  const indexOfFirstClass = indexOfLastClass - itemsPerPage;
+  const currentClasses = classes.slice(indexOfFirstClass, indexOfLastClass);
+
+  const handleDatasetPageChange = (page: number) => {
+    setCurrentDatasetPage(page);
+  };
+
+  const handleClassPageChange = (page: number) => {
+    setCurrentClassPage(page);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -280,45 +304,54 @@ export default function DatasetPage() {
       )}
 
       {selectedBucket && !noDatasetsError && datasets.length > 0 && (
-        <Table
-          headers={["Dataset Name", "Remove", "Download"]}
-          caption="Datasets"
-          description="A dataset is a collection of data, typically in a structured format, that can be used for analysis or processing."
-        >
-          {datasets.map((dataset, index) => (
-            <TableRow
-              key={index}
-              onClick={() => handleDatasetRowClick(dataset)}
-            >
-              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                {dataset}
-              </td>
-              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedDataset(dataset);
-                    setIsDatasetModalOpen(true);
-                  }}
-                  className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                >
-                  <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
-                </button>
-              </td>
-              <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDatasetDownload(selectedBucket, dataset);
-                  }}
-                  className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                >
-                  <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
-                </button>
-              </td>
-            </TableRow>
-          ))}
-        </Table>
+        <>
+          <Table
+            headers={["Dataset Name", "Remove", "Download"]}
+            caption="Datasets"
+            description="A dataset is a collection of data, typically in a structured format, that can be used for analysis or processing."
+          >
+            {currentDatasets.map((dataset, index) => (
+              <TableRow
+                key={index}
+                onClick={() => handleDatasetRowClick(dataset)}
+              >
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  {dataset}
+                </td>
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedDataset(dataset);
+                      setIsDatasetModalOpen(true);
+                    }}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  >
+                    <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+                  </button>
+                </td>
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDatasetDownload(selectedBucket, dataset);
+                    }}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  >
+                    <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
+                  </button>
+                </td>
+              </TableRow>
+            ))}
+          </Table>
+
+          <Pagination
+            totalItems={datasets.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentDatasetPage}
+            onPageChange={handleDatasetPageChange}
+          />
+        </>
       )}
 
       {selectedDataset && !noClassesError && classes.length > 0 && (
@@ -328,7 +361,7 @@ export default function DatasetPage() {
             caption="Classes"
             description="A class is a collection of data within a dataset, typically representing a specific type or category of data."
           >
-            {classes.map((cls, index) => (
+            {currentClasses.map((cls, index) => (
               <TableRow
                 key={index}
                 onClick={() =>
@@ -364,6 +397,13 @@ export default function DatasetPage() {
               </TableRow>
             ))}
           </Table>
+
+          <Pagination
+            totalItems={classes.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentClassPage}
+            onPageChange={handleClassPageChange}
+          />
         </div>
       )}
 

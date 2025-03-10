@@ -15,6 +15,7 @@ import InputField from "@/app/components/InputField";
 import SuccessMessage from "@/app/components/SuccessMessage";
 import Button from "@/app/components/Button";
 import { useAuth } from "@/app/hooks/useAuth";
+import Pagination from "@/app/components/Pagination";
 
 interface Bucket {
   name: string;
@@ -31,6 +32,9 @@ export default function BucketPage() {
   const [selectedBucket, setSelectedBucket] = useState<Bucket | null>(null);
   const [inputBucketName, setInputBucketName] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const router = useRouter();
 
   const fetchBuckets = useCallback(async () => {
@@ -83,6 +87,10 @@ export default function BucketPage() {
   const isCreateDisabled =
     inputBucketName.length < 3 || inputBucketName.length > 63;
 
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentBuckets = buckets.slice(indexOfFirstItem, indexOfLastItem);
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -114,7 +122,7 @@ export default function BucketPage() {
         caption="Buckets"
         description="A bucket is similar to a folder or directory in a filesystem, where each bucket can hold an arbitrary number of objects. In our case, the bucket contains image datasets, which are collections of images that we can use for processing or analysis."
       >
-        {buckets.map((bucket, index) => (
+        {currentBuckets.map((bucket, index) => (
           <TableRow key={index} onClick={() => handleRowClick(bucket.name)}>
             <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
               {bucket.name}
@@ -137,6 +145,13 @@ export default function BucketPage() {
           </TableRow>
         ))}
       </Table>
+
+      <Pagination
+        totalItems={buckets.length}
+        itemsPerPage={itemsPerPage}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+      />
 
       <RemoveDialog
         isOpen={isModalOpen}
