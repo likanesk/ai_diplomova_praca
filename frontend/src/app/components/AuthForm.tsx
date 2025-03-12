@@ -2,10 +2,9 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { callLogin, callRegister } from "../services/auth/authService";
+import { callLogin } from "../services/auth/authService";
 import Button from "./Button";
 import InputField from "./InputField";
-import CustomLink from "./CustomLink";
 import ErrorMessage from "./ErrorMessage";
 
 interface AuthFormProps {
@@ -16,7 +15,6 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -26,16 +24,11 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
     setError("");
 
     try {
-      if (!isLogin && password !== confirmPassword) {
-        throw new Error("Passwords do not match");
-      }
-
       if (isLogin) {
         const { access_token } = await callLogin(username, password);
         localStorage.setItem("access_token", access_token);
         router.push("/pages/home");
       } else {
-        await callRegister(username, password);
         router.push("/pages/login");
       }
     } catch (err) {
@@ -78,46 +71,12 @@ export default function AuthForm({ isLogin }: AuthFormProps) {
                 value={password}
                 onChange={(value) => setPassword(value)}
               />
-              {!isLogin && (
-                <InputField
-                  label="Confirm Password"
-                  type="password"
-                  id="confirmPassword"
-                  placeholder="••••••••"
-                  required
-                  value={confirmPassword}
-                  onChange={(value) => setConfirmPassword(value)}
-                />
-              )}
               {error && (
                 <ErrorMessage message={error} onClose={() => setError("")} />
               )}
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Loading..." : isLogin ? "Sign in" : "Sign up"}
+                {loading ? "Loading..." : "Sign in"}
               </Button>
-              <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                {isLogin ? (
-                  <>
-                    Don’t have an account yet?{" "}
-                    <CustomLink
-                      href="/pages/register"
-                      className="text-primary-600 hover:underline dark:text-primary-500"
-                    >
-                      Sign up
-                    </CustomLink>
-                  </>
-                ) : (
-                  <>
-                    Already have an account?{" "}
-                    <CustomLink
-                      href="/pages/login"
-                      className="text-primary-600 hover:underline dark:text-primary-500"
-                    >
-                      Sign in
-                    </CustomLink>
-                  </>
-                )}
-              </p>
             </form>
           </div>
         </div>
