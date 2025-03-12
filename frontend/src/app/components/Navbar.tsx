@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   IoBasketOutline,
@@ -5,11 +7,15 @@ import {
   IoFolderOpenOutline,
   IoHomeOutline,
   IoLogInOutline,
+  IoLogOutOutline,
   IoServerOutline,
 } from "react-icons/io5";
 import CustomLink from "./CustomLink";
+import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
+  const { isAuthenticated, logout } = useAuth();
+
   return (
     <>
       <nav className="bg-white border-gray-200 dark:bg-gray-900">
@@ -24,16 +30,30 @@ export default function Navbar() {
             </span>
           </Link>
           <div className="flex items-center space-x-6 rtl:space-x-reverse">
-            <CustomLink
-              href="/pages/login"
-              icon={
-                <IoLogInOutline className="w-5 h-5 text-blue-500 dark:text-white" />
-              }
-              iconPosition="left"
-              useFlex
-            >
-              Login
-            </CustomLink>
+            {isAuthenticated ? (
+              <CustomLink
+                href="#"
+                icon={
+                  <IoLogOutOutline className="w-5 h-5 text-blue-500 dark:text-white" />
+                }
+                iconPosition="left"
+                useFlex
+                onClick={logout}
+              >
+                Logout
+              </CustomLink>
+            ) : (
+              <CustomLink
+                href="/pages/login"
+                icon={
+                  <IoLogInOutline className="w-5 h-5 text-blue-500 dark:text-white" />
+                }
+                iconPosition="left"
+                useFlex
+              >
+                Login
+              </CustomLink>
+            )}
           </div>
         </div>
       </nav>
