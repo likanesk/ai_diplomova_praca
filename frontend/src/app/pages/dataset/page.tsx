@@ -259,7 +259,7 @@ export default function DatasetPage() {
       {error && <ErrorMessage message={error} onClose={() => setError("")} />}
 
       <div className="max-w-sm mx-auto my-4">
-        <h1 className="pb-5 text-center">Dataset page</h1>
+        <h1 className="text-2xl pb-5 text-center">Dataset page</h1>
 
         <Dropdown
           id="bucket-select"

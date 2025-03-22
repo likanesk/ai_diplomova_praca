@@ -231,7 +231,7 @@ export default function SamplePage() {
   return (
     <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
       <div className="max-w-sm mx-auto my-4">
-        <h1 className="pb-5 text-center">Sample page</h1>
+        <h1 className="text-2xl pb-5 text-center">Sample page</h1>
         <Dropdown
           id="bucket-select"
           label="Select Bucket"
