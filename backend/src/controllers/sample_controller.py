@@ -26,9 +26,9 @@ async def upload_sample(bucket_name: str, database_name: str, class_name: str,
     if file_extension != '.bmp':
         raise HTTPException(status_code=400, detail="Only .bmp files are accepted.")
 
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
-    await check_class_exists(bucket_name, database_name, class_name)
+    await check_bucket_exists(client, bucket_name)
+    await check_database_exists(client, bucket_name, database_name)
+    await check_class_exists(client, bucket_name, database_name, class_name)
 
     file_path = f"{database_name}/{class_name}/{file.filename}"
     
@@ -61,9 +61,9 @@ async def get_all_samples_for_classification(bucket_name: str, database_name: st
     :return: A list of file names (objects) within the specified class.
     :raises HTTPException: If there is an error in fetching the samples.
     """
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
-    await check_class_exists(bucket_name, database_name, class_name)
+    await check_bucket_exists(client, bucket_name)
+    await check_database_exists(client, bucket_name, database_name)
+    await check_class_exists(client, bucket_name, database_name, class_name)
 
     if not database_name.endswith('/'):
         database_name += '/'
@@ -89,8 +89,8 @@ async def get_all_samples_for_regression_detection(bucket_name: str, database_na
     :return: A list of file names (objects) within the specified database.
     :raises HTTPException: If there is an error in fetching the samples.
     """
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
+    await check_bucket_exists(client, bucket_name)
+    await check_database_exists(client, bucket_name, database_name)
 
     if not database_name.endswith('/'):
         database_name += '/'
@@ -117,8 +117,8 @@ async def download_sample(bucket_name: str, database_name: str, sample_name: str
     :return: A `FileResponse` object containing the downloaded file.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
 
         if class_name:
             await check_sample_exists_for_classification(bucket_name, database_name, class_name, sample_name)
@@ -155,8 +155,8 @@ async def delete_sample(bucket_name: str, database_name: str, sample_name: str, 
     :return: A message indicating the status of the deletion.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
         
         if class_name:
             await check_sample_exists_for_classification(bucket_name, database_name, class_name, sample_name)

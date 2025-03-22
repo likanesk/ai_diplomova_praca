@@ -1,25 +1,29 @@
 import logging
 from fastapi import HTTPException
-from minio.error import S3Error
 from .minio_client import get_minio_client
 
 client = get_minio_client()
 
 logger = logging.getLogger(__name__)
 
-async def check_bucket_exists(bucket_name: str):
+async def check_bucket_exists(client, bucket_name: str):
     """
     Checks if the S3 bucket exists, raises an HTTPException if not found.
+    
+    :param client: MinIO client.
+    :param bucket_name: The name of the S3 bucket.
+    :raises HTTPException: If the bucket does not exist.
     """
     if not client.bucket_exists(bucket_name):
         logger.error(f"Bucket '{bucket_name}' does not exist.")
         raise HTTPException(status_code=404, detail=f"Bucket '{bucket_name}' does not exist.")
 
-async def check_database_exists(bucket_name: str, database_name: str):
+async def check_database_exists(client, bucket_name: str, database_name: str):
     """
     Checks if a database exists in the S3 bucket by checking for any objects with the database prefix.
     If no objects are found with the prefix, it is assumed that the database does not exist.
 
+    :param client: MinIO client.
     :param bucket_name: The name of the S3 bucket.
     :param database_name: The name of the database to check.
     :raises HTTPException: If the database does not exist.
@@ -40,11 +44,12 @@ async def check_database_exists(bucket_name: str, database_name: str):
         logger.error(f"Failed to check if database '{database_name}' exists in bucket '{bucket_name}': {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to check database existence: {str(e)}")
 
-async def check_class_exists(bucket_name: str, database_name: str, class_name: str):
+async def check_class_exists(client, bucket_name: str, database_name: str, class_name: str):
     """
     Checks if a class (subfolder) exists in a database within the S3 bucket by checking for any objects with the class prefix.
     If no objects are found with the prefix, it is assumed that the class does not exist.
 
+    :param client: MinIO client.
     :param bucket_name: The name of the S3 bucket.
     :param database_name: The name of the database.
     :param class_name: The name of the class (subfolder) to check.

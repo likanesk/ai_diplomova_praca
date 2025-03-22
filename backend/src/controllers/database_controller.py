@@ -53,7 +53,7 @@ async def process_zip(file: UploadFile, bucket_name: str, validation_func, **kwa
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="File is not a zip.")
 
-    await check_bucket_exists(bucket_name)
+    await check_bucket_exists(client, bucket_name)
 
     # Use a temporary directory for extraction and processing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -111,7 +111,7 @@ async def get_all_databases(bucket_name: str):
     :return: A list of top-level database names within the specified bucket.
     :raises HTTPException: If there is an error in fetching the databases.
     """
-    await check_bucket_exists(bucket_name)
+    await check_bucket_exists(client, bucket_name)
 
     try:
         objects = client.list_objects(bucket_name)
@@ -133,7 +133,7 @@ async def download_database(bucket_name: str, database_name: str):
              The archive is named after the database and saved in the system's Downloads folder.
     """
     try:
-        await check_bucket_exists(bucket_name)
+        await check_bucket_exists(client, bucket_name)
 
         # Path to Downloads folder
         downloads_path = str(Path.home() / "Downloads")
@@ -174,8 +174,8 @@ async def delete_database(bucket_name: str, database_name: str):
     :return: A message indicating the status of the deletion.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
 
         objects = client.list_objects(bucket_name, recursive=True)
 

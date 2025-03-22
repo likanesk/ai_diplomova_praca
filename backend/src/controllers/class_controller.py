@@ -25,7 +25,7 @@ async def upload_class(bucket_name: str, database_name: str, file: UploadFile = 
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="Only zip files are accepted.")
     
-    await check_bucket_exists(bucket_name)
+    await check_bucket_exists(client, bucket_name)
 
     # Use a temporary database for extraction and processing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -70,8 +70,8 @@ async def get_all_classes(bucket_name: str, database_name: str):
     :return: A list of class names (subfolders) within the specified database.
     :raises HTTPException: If there is an error in fetching the classes.
     """
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
+    await check_bucket_exists(client, bucket_name)
+    await check_database_exists(client, bucket_name, database_name)
 
     if not database_name.endswith('/'):
         database_name += '/'
@@ -97,9 +97,9 @@ async def download_class(bucket_name: str, database_name: str, class_name: str):
              The archive is named after the class and saved in the system's Downloads folder.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
-        await check_class_exists(bucket_name, database_name, class_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
+        await check_class_exists(client, bucket_name, database_name, class_name)
 
         # Path to the system's Downloads folder
         downloads_path = str(Path.home() / "Downloads")
@@ -147,9 +147,9 @@ async def delete_class(bucket_name: str, database_name: str, class_name: str):
     :return: A message indicating the status of the deletion.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
-        await check_class_exists(bucket_name, database_name, class_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
+        await check_class_exists(client, bucket_name, database_name, class_name)
 
         class_path = f"{database_name}/{class_name}/"
         objects = client.list_objects(bucket_name, prefix=class_path, recursive=True)
