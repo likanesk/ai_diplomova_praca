@@ -39,7 +39,8 @@ async def get_sample(client, bucket_name: str, database_name: str, sample_name: 
     :param database_name: Name of the dataset (folder in the bucket).
     :param sample_name: Name of the sample (file).
     :param class_name: Optional subfolder within the dataset (e.g., class name).
-    :return: The object (file) data and metadata.
+    :return: A dictionary containing the sample data and metadata.
+    :raises HTTPException: If the sample is not found or if an error occurs.
     """
     try:
         await check_bucket_exists(client, bucket_name)
@@ -55,7 +56,11 @@ async def get_sample(client, bucket_name: str, database_name: str, sample_name: 
 
         response = client.get_object(bucket_name, object_path)
         
-        return response
+        return {
+            "path": object_path,
+            "data": response.data,
+            "metadata": response.headers,
+        }
     except S3Error as e:
         logger.error(f"Error retrieving sample: {e}")
         raise HTTPException(status_code=404, detail=f"Failed to retrieve sample: {e}")
@@ -74,7 +79,7 @@ async def get_samples_by_count(client, bucket_name: str, database_name: str, ind
     :param index: Starting index of the samples.
     :param count: Number of samples to retrieve.
     :param class_name: Optional subfolder within the dataset (e.g., class name).
-    :return: List of samples (file data and metadata).
+    :return: A list of dictionaries, each containing sample data and metadata.
     :raises HTTPException: If the requested count exceeds the available samples or if parameters are invalid.
 
     Behavior:
@@ -106,7 +111,7 @@ async def get_samples_by_count(client, bucket_name: str, database_name: str, ind
         
         samples = [obj.object_name for obj in objects if not obj.is_dir]
 
-         # Check if index is valid
+        # Check if index is valid
         if index < 0:
             raise HTTPException(
                 status_code=400,
@@ -136,7 +141,6 @@ async def get_samples_by_count(client, bucket_name: str, database_name: str, ind
                 status_code=400,
                 detail=f"Requested {count} samples starting from index {index}, but only {len(samples)} samples are available."
             )
-
 
         start_index = index
         end_index = index + count
