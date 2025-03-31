@@ -149,11 +149,23 @@ async def get_samples_by_count(client, bucket_name: str, database_name: str, ind
         result = []
         for sample_path in paginated_samples:
             response = client.get_object(bucket_name, sample_path)
-            result.append({
+            
+            # Create base result dictionary
+            sample_result = {
                 "path": sample_path,
                 "data": response.data,
-                "metadata": response.headers,
-            })
+                "metadata": response.headers
+            }
+            
+            # Add class only if it exists in the path or was explicitly requested
+            if class_name:
+                sample_result["class"] = class_name
+            else:
+                path_parts = sample_path.split('/')
+                if len(path_parts) > 2:  # If there's a class in the path
+                    sample_result["class"] = path_parts[1]
+            
+            result.append(sample_result)
         
         return result
     except S3Error as e:
