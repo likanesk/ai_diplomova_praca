@@ -44,6 +44,7 @@ export default function UploadPage() {
   const [inputFile, setInputFile] = useState<File | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showExample, setShowExample] = useState(false);
+  const [fileUploadKey, setFileUploadKey] = useState(0);
 
   const fetchBuckets = useCallback(async () => {
     setLoading(true);
@@ -84,17 +85,19 @@ export default function UploadPage() {
         await callUploadZipForDetection(inputBucketName, inputFile);
       }
 
+      // Reset all form fields
       setInputBucketName("");
       setInputExpectedNumClasses("");
       setInputExpectedNumFilesPerClass("");
       setInputFile(null);
       setShowSuccessModal(true);
       setError("");
+      setFileUploadKey((prevKey) => prevKey + 1);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : `Failed to upload dataset in bucket: ${inputBucketName}`
+          : `Failed to upload dataset to bucket: ${inputBucketName}`
       );
     }
   };
@@ -134,7 +137,7 @@ export default function UploadPage() {
             />
             <Dropdown
               id="bucket-dropdown"
-              label="Select Bucket to upload db"
+              label="Select Bucket to upload dataset"
               value={inputBucketName}
               onChange={setInputBucketName}
               options={buckets.map((bucket) => ({
@@ -169,9 +172,10 @@ export default function UploadPage() {
             )}
             <div className="flex">
               <FileUpload
+                key={fileUploadKey}
                 id="file_input"
                 label="Upload file"
-                helpText=".ZIP file is accepted"
+                helpText="Only .ZIP files are accepted"
                 onChange={(file) => setInputFile(file)}
               />
               <IconButton
@@ -252,7 +256,7 @@ export default function UploadPage() {
       {showSuccessModal && (
         <SuccessMessage
           onClose={() => setShowSuccessModal(false)}
-          message={`Dataset was successfully added into bucket!`}
+          message="Dataset was successfully uploaded to the bucket!"
         />
       )}
     </div>
