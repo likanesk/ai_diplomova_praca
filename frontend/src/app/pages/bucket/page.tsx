@@ -34,6 +34,7 @@ export default function BucketPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const router = useRouter();
 
@@ -62,6 +63,10 @@ export default function BucketPage() {
           prevBuckets.filter((bucket) => bucket.name !== selectedBucket.name)
         );
         setIsModalOpen(false);
+        setSuccessMessage(
+          `Bucket "${selectedBucket.name}" was successfully deleted!`
+        );
+        setShowSuccessModal(true);
       } catch {
         setError(`Failed to delete bucket: ${selectedBucket.name}.`);
       }
@@ -78,6 +83,9 @@ export default function BucketPage() {
       await callCreateBucket(inputBucketName);
       fetchBuckets();
       setInputBucketName("");
+      setSuccessMessage(
+        `Bucket "${inputBucketName}" was successfully created!`
+      );
       setShowSuccessModal(true);
     } catch {
       setError(`Failed to create bucket: ${inputBucketName}.`);
@@ -165,7 +173,7 @@ export default function BucketPage() {
       {showSuccessModal && (
         <SuccessMessage
           onClose={() => setShowSuccessModal(false)}
-          message={`Bucket was successfully created!`}
+          message={successMessage}
         />
       )}
     </div>

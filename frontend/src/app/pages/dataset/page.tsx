@@ -21,6 +21,7 @@ import Dropdown from "@/app/components/Dropdown";
 import { useAuth } from "@/app/hooks/useAuth";
 import ErrorMessage from "@/app/components/ErrorMessage";
 import Pagination from "@/app/components/Pagination";
+import SuccessMessage from "@/app/components/SuccessMessage";
 
 interface Bucket {
   name: string;
@@ -40,6 +41,8 @@ export default function DatasetPage() {
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [selectedBucket, setSelectedBucket] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [noDatasetsError, setNoDatasetsError] = useState(false);
   const [noClassesError, setNoClassesError] = useState(false);
 
@@ -148,6 +151,10 @@ export default function DatasetPage() {
         );
 
         setIsDatasetModalOpen(false);
+        setSuccessMessage(
+          `Dataset "${selectedDataset}" was successfully deleted.`
+        );
+        setShowSuccessModal(true);
       } catch {
         setError(`Failed to delete dataset: ${selectedDataset}`);
       }
@@ -164,6 +171,8 @@ export default function DatasetPage() {
         );
 
         setIsClassModalOpen(false);
+        setSuccessMessage(`Class "${selectedClass}" was successfully deleted.`);
+        setShowSuccessModal(true);
       } catch {
         setError(`Failed to delete class: ${selectedClass}`);
       }
@@ -424,6 +433,13 @@ export default function DatasetPage() {
         error={error}
         onErrorClose={() => setError("")}
       />
+
+      {showSuccessModal && (
+        <SuccessMessage
+          onClose={() => setShowSuccessModal(false)}
+          message={successMessage}
+        />
+      )}
     </div>
   );
 }

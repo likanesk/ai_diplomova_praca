@@ -17,6 +17,7 @@ import { useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
 import { useAuth } from "@/app/hooks/useAuth";
 import Pagination from "@/app/components/Pagination";
+import SuccessMessage from "@/app/components/SuccessMessage";
 
 interface Bucket {
   name: string;
@@ -38,6 +39,9 @@ export default function SamplePage() {
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [isClassification, setIsClassification] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
@@ -191,6 +195,11 @@ export default function SamplePage() {
           prevSamples.filter((sample) => sample !== selectedSample)
         );
 
+        setSuccessMessage(
+          `Sample "${selectedSample}" was successfully deleted.`
+        );
+        setShowSuccessModal(true);
+        setSelectedSample(null);
         setIsModalOpen(false);
       } catch {
         setError(`Failed to delete sample: ${selectedSample}`);
@@ -341,6 +350,13 @@ export default function SamplePage() {
         error={error}
         onErrorClose={() => setError("")}
       />
+
+      {showSuccessModal && (
+        <SuccessMessage
+          onClose={() => setShowSuccessModal(false)}
+          message={successMessage}
+        />
+      )}
     </div>
   );
 }
