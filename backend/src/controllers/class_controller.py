@@ -1,8 +1,11 @@
 import os
 import logging
+from pathlib import Path
+import shutil
 import tempfile
 import zipfile
 from fastapi import File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from ..utils.minio_client import get_minio_client
 from ..utils.minio_validators import check_bucket_exists, check_class_exists, check_database_exists
 from minio.error import S3Error
@@ -22,7 +25,7 @@ async def upload_class(bucket_name: str, database_name: str, file: UploadFile = 
     if not file.filename.endswith('.zip'):
         raise HTTPException(status_code=400, detail="Only zip files are accepted.")
     
-    await check_bucket_exists(bucket_name)
+    await check_bucket_exists(client, bucket_name)
 
     # Use a temporary database for extraction and processing
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -67,8 +70,8 @@ async def get_all_classes(bucket_name: str, database_name: str):
     :return: A list of class names (subfolders) within the specified database.
     :raises HTTPException: If there is an error in fetching the classes.
     """
-    await check_bucket_exists(bucket_name)
-    await check_database_exists(bucket_name, database_name)
+    await check_bucket_exists(client, bucket_name)
+    await check_database_exists(client, bucket_name, database_name)
 
     if not database_name.endswith('/'):
         database_name += '/'
@@ -84,35 +87,48 @@ async def get_all_classes(bucket_name: str, database_name: str):
 
 async def download_class(bucket_name: str, database_name: str, class_name: str):
     """
-    Downloads all files from a specified class (subdirectory) within a database in the S3 bucket to a local database.
-    
-    :param bucket_name: The name of the S3 bucket.
-    :param database_name: The name of the database inside the bucket.
+    Downloads all files from a specified class (subdirectory) within a database in the S3 bucket,
+    compresses them into a ZIP archive, and returns the archive for download.
+
+    :param bucket_name: The name of the S3 bucket where the database is stored.
+    :param database_name: The name of the database (prefix) inside the bucket.
     :param class_name: The name of the class (subdirectory) inside the database.
-    :return: A message indicating the status of the download.
+    :return: A `FileResponse` object containing the ZIP archive of the downloaded files.
+             The archive is named after the class and saved in the system's Downloads folder.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
-        await check_class_exists(bucket_name, database_name, class_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
+        await check_class_exists(client, bucket_name, database_name, class_name)
 
+        # Path to the system's Downloads folder
+        downloads_path = str(Path.home() / "Downloads")
+        class_download_path = os.path.join(downloads_path, class_name)
+
+        # Create a directory for the class files if it doesn't exist
+        os.makedirs(class_download_path, exist_ok=True)
+
+        # List all objects in the bucket under the specified class prefix
         class_path = f"{database_name}/{class_name}/"
         objects = client.list_objects(bucket_name, prefix=class_path, recursive=True)
-        dir_path = "/tmp"
-        class_download_path = os.path.join(dir_path, class_name)
 
-        if not os.path.exists(class_download_path):
-            os.makedirs(class_download_path)
-
+        # Download each object to the temporary directory
         for obj in objects:
-            if not obj.is_dir:
+            if not obj.is_dir:  # Skip directories
                 relative_path = obj.object_name[len(class_path):]
                 file_path = os.path.join(class_download_path, relative_path)
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)  # Ensure subdirectories exist
                 client.fget_object(bucket_name, obj.object_name, file_path)
-                logger.info(f"File '{obj.object_name}' downloaded successfully to '{file_path}'.")
 
-        return {"message": f"All files from class '{class_name}' in database '{database_name}' downloaded successfully.", "database_location": class_download_path}
+        # Create a ZIP archive of the downloaded files
+        zip_path = os.path.join(downloads_path, f"{class_name}.zip")
+        shutil.make_archive(base_name=os.path.join(downloads_path, class_name), format="zip", root_dir=class_download_path)
+
+        # Remove the temporary directory after creating the ZIP archive
+        shutil.rmtree(class_download_path)
+
+        # Return the ZIP archive as a downloadable file
+        return FileResponse(path=zip_path, media_type='application/zip', filename=f"{class_name}.zip")
     
     except S3Error as e:
         logger.error(f"Failed to download class '{class_name}' from database '{database_name}' in bucket '{bucket_name}': {str(e)}")
@@ -131,9 +147,9 @@ async def delete_class(bucket_name: str, database_name: str, class_name: str):
     :return: A message indicating the status of the deletion.
     """
     try:
-        await check_bucket_exists(bucket_name)
-        await check_database_exists(bucket_name, database_name)
-        await check_class_exists(bucket_name, database_name, class_name)
+        await check_bucket_exists(client, bucket_name)
+        await check_database_exists(client, bucket_name, database_name)
+        await check_class_exists(client, bucket_name, database_name, class_name)
 
         class_path = f"{database_name}/{class_name}/"
         objects = client.list_objects(bucket_name, prefix=class_path, recursive=True)

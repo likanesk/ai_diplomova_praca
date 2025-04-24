@@ -15,7 +15,7 @@ export default function Footer() {
                 alt="FastAPI Logo"
               />
             </a>
-            <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">
+            <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">
               API for medical data
             </span>
           </div>

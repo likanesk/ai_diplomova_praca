@@ -2,10 +2,11 @@
 
 import RemoveDialog from "@/app/components/RemoveDialog";
 import { useEffect, useState, useCallback } from "react";
-import { IoTrashOutline } from "react-icons/io5";
+import { IoDownloadOutline, IoTrashOutline } from "react-icons/io5";
 import {
+  callDownloadSample,
   callGetAllSamples,
-  callRemoveDataset,
+  callRemoveSample,
 } from "@/app/services/sample/sampleService";
 import { callGetAllBuckets } from "@/app/services/bucket/bucketService";
 import { callGetAllDatasets } from "@/app/services/dataset/datasetService";
@@ -14,6 +15,9 @@ import Table from "@/app/components/Table";
 import TableRow from "@/app/components/TableRow";
 import { useSearchParams } from "next/navigation";
 import Dropdown from "@/app/components/Dropdown";
+import { useAuth } from "@/app/hooks/useAuth";
+import Pagination from "@/app/components/Pagination";
+import SuccessMessage from "@/app/components/SuccessMessage";
 
 interface Bucket {
   name: string;
@@ -21,6 +25,8 @@ interface Bucket {
 }
 
 export default function SamplePage() {
+  useAuth();
+
   const [samples, setSamples] = useState<string[]>([]);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [datasets, setDatasets] = useState<string[]>([]);
@@ -32,6 +38,12 @@ export default function SamplePage() {
   const [selectedBucket, setSelectedBucket] = useState<string>("");
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
+  const [isClassification, setIsClassification] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const searchParams = useSearchParams();
 
@@ -83,6 +95,7 @@ export default function SamplePage() {
       const data = await callGetAllClasses(selectedBucket, selectedDataset);
       setClasses(data?.classes || []);
       setSamples([]);
+      setIsClassification(data?.classes && data.classes.length > 0);
     } catch {
       setError("Failed to fetch classes");
     } finally {
@@ -91,7 +104,7 @@ export default function SamplePage() {
   }, [selectedBucket, selectedDataset]);
 
   const fetchSamples = useCallback(async () => {
-    if (!selectedBucket || !selectedDataset || !selectedClass) {
+    if (!selectedBucket || !selectedDataset) {
       return;
     }
 
@@ -101,15 +114,20 @@ export default function SamplePage() {
       const data = await callGetAllSamples(
         selectedBucket,
         selectedDataset,
-        selectedClass
+        isClassification ? selectedClass : undefined
       );
-      setSamples(data?.samples || []);
+
+      const filteredSamples = (data?.samples || []).filter(
+        (sample: string) => !sample.includes("/")
+      );
+
+      setSamples(filteredSamples);
     } catch {
       setError("Failed to fetch samples");
     } finally {
       setLoading(false);
     }
-  }, [selectedBucket, selectedDataset, selectedClass]);
+  }, [selectedBucket, selectedDataset, selectedClass, isClassification]);
 
   useEffect(() => {
     fetchBuckets();
@@ -135,12 +153,18 @@ export default function SamplePage() {
   }, [selectedBucket, selectedDataset, fetchClasses]);
 
   useEffect(() => {
-    if (selectedBucket && selectedDataset && selectedClass) {
+    if (selectedBucket && selectedDataset) {
       fetchSamples();
     } else {
       setSamples([]);
     }
-  }, [selectedBucket, selectedDataset, selectedClass, fetchSamples]);
+  }, [
+    selectedBucket,
+    selectedDataset,
+    selectedClass,
+    isClassification,
+    fetchSamples,
+  ]);
 
   useEffect(() => {
     const bucket = searchParams.get("bucket");
@@ -158,19 +182,24 @@ export default function SamplePage() {
   }, [searchParams]);
 
   const handleDelete = async () => {
-    if (selectedSample && selectedBucket && selectedDataset && selectedClass) {
+    if (selectedSample && selectedBucket && selectedDataset) {
       try {
-        await callRemoveDataset(
+        await callRemoveSample(
           selectedBucket,
           selectedDataset,
-          selectedClass,
-          selectedSample
+          selectedSample,
+          isClassification ? selectedClass : undefined
         );
 
         setSamples((prevSamples) =>
           prevSamples.filter((sample) => sample !== selectedSample)
         );
 
+        setSuccessMessage(
+          `Sample "${selectedSample}" was successfully deleted.`
+        );
+        setShowSuccessModal(true);
+        setSelectedSample(null);
         setIsModalOpen(false);
       } catch {
         setError(`Failed to delete sample: ${selectedSample}`);
@@ -178,17 +207,40 @@ export default function SamplePage() {
     }
   };
 
+  const handleDownload = async (
+    bucketName: string,
+    datasetName: string,
+    sampleName: string,
+    className?: string
+  ) => {
+    if (bucketName && datasetName && sampleName) {
+      try {
+        await callDownloadSample(
+          bucketName,
+          datasetName,
+          sampleName,
+          isClassification ? className : undefined
+        );
+      } catch {
+        setError("Failed to download sample. Please try again.");
+      }
+    } else {
+      console.error("Missing required parameters for download");
+    }
+  };
+
+  const indexOfLastSample = currentPage * itemsPerPage;
+  const indexOfFirstSample = indexOfLastSample - itemsPerPage;
+  const currentSamples = samples.slice(indexOfFirstSample, indexOfLastSample);
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  if (error) {
-    return <div>{error}</div>;
-  }
-
   return (
-    <div>
-      <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
+    <div className="p-5 text-lg font-semibold text-left rtl:text-right text-gray-900 bg-white dark:text-white dark:bg-gray-800">
+      <div className="max-w-sm mx-auto my-4">
+        <h1 className="text-2xl pb-5 text-center">Sample page</h1>
         <Dropdown
           id="bucket-select"
           label="Select Bucket"
@@ -220,50 +272,91 @@ export default function SamplePage() {
           placeholder="Choose a dataset"
         />
 
-        <Dropdown
-          id="class-select"
-          label="Select Class"
-          value={selectedClass}
-          onChange={(value) => setSelectedClass(value)}
-          options={classes.map((cls) => ({
-            value: cls,
-            label: cls,
-          }))}
-          placeholder="Choose a class"
-        />
+        {isClassification && (
+          <Dropdown
+            id="class-select"
+            label="Select Class"
+            value={selectedClass}
+            onChange={(value) => setSelectedClass(value)}
+            options={classes.map((cls) => ({
+              value: cls,
+              label: cls,
+            }))}
+            placeholder="Choose a class"
+          />
+        )}
       </div>
 
-      <Table
-        headers={["Sample Name", "Remove"]}
-        caption="Samples"
-        description="A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
-      >
-        {samples.map((sample, index) => (
-          <TableRow key={index}>
-            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-              {sample}
-            </td>
-            <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-              <button
-                onClick={() => {
-                  setSelectedSample(sample);
-                  setIsModalOpen(true);
-                }}
-                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-              >
-                <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
-              </button>
-            </td>
-          </TableRow>
-        ))}
-      </Table>
+      {samples.length > 0 && (
+        <>
+          <Table
+            headers={["Sample Name", "Remove", "Download"]}
+            caption="Samples"
+            description={
+              isClassification
+                ? "A sample represents data within a class, which in our case is an image. Specifically, it is an image that represents the given class."
+                : "A sample represents data within a dataset, which in our case is an image or JSON file with metadata about all the images."
+            }
+          >
+            {currentSamples.map((sample, index) => (
+              <TableRow key={index}>
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  {sample}
+                </td>
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  <button
+                    onClick={() => {
+                      setSelectedSample(sample);
+                      setIsModalOpen(true);
+                    }}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  >
+                    <IoTrashOutline className="w-5 h-5 text-red-500 dark:text-white mr-1" />
+                  </button>
+                </td>
+                <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                  <button
+                    onClick={() => {
+                      handleDownload(
+                        selectedBucket,
+                        selectedDataset,
+                        sample,
+                        selectedClass
+                      );
+                    }}
+                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                  >
+                    <IoDownloadOutline className="w-5 h-5 text-blue-500 dark:text-white mr-1" />
+                  </button>
+                </td>
+              </TableRow>
+            ))}
+          </Table>
+
+          <Pagination
+            totalItems={samples.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
+        </>
+      )}
 
       <RemoveDialog
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onConfirm={handleDelete}
         name={selectedSample || ""}
+        error={error}
+        onErrorClose={() => setError("")}
       />
+
+      {showSuccessModal && (
+        <SuccessMessage
+          onClose={() => setShowSuccessModal(false)}
+          message={successMessage}
+        />
+      )}
     </div>
   );
 }

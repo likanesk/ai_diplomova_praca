@@ -29,7 +29,7 @@ async def get_all_buckets():
 
 async def delete_bucket(bucket_name: str):
     try:
-        await check_bucket_exists(bucket_name)
+        await check_bucket_exists(client, bucket_name)
 
         objects = client.list_objects(bucket_name)
         for obj in objects:

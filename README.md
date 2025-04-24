@@ -49,13 +49,19 @@ These instructions will get you a copy of the project up and running on your loc
 3. **Environment Configuration**
 
     Create a `.env` file based on the `.env.example` provided in the repository. Fill in the necessary environment variables such as database URLs, API keys, and other configurations.
-
+    
     ```bash
-    # Example
-    MINIO_ENDPOINT=localhost:9000
-    MINIO_ACCESS_KEY=APM5ncJe74pTaKorDxGM
-    MINIO_SECRET_KEY=Sy5LTUUE5MdqC8CuYzZaRAgjdtA7aN4xtTkJViBc
-    MINIO_SECURE=False
+    # MinIO configuration
+    MINIO_ENDPOINT=your-minio-endpoint
+    MINIO_ACCESS_KEY=your-minio-access-key
+    MINIO_SECRET_KEY=your-minio-secret-key
+    MINIO_SECURE=False  # Change to True if using HTTPS
+    MINIO_ALIAS=myminio
+    MINIO_SERVER=http://your-minio-server-url
+
+    # JWT configuration
+    SECRET_KEY=your-secret-key
+    ACCESS_TOKEN_EXPIRE_MINUTES=60
     ```
 
     These settings configure the application to connect to your local MinIO server. Adjust them according to your MinIO server setup if different from the above.
@@ -65,14 +71,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Start MinIO server locally
 
-1. **Navigate to Minio repository**
-
-    ```bash
-    # Example
-    C:\Minio>
-    ```
-
-2. **Run minIO server**
+1. **Run minIO server**
 
     ```bash
     # Example

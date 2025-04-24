@@ -1,28 +1,16 @@
-export const callCreateBucket = async (bucketName: string) => {
-  const response = await fetch(
-    `http://localhost:8000/buckets/create-bucket/${bucketName}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to create bucket: '${bucketName}'`);
+export const callGetAllBuckets = async () => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
   }
 
-  return await response.json();
-};
-
-export const callGetAllBuckets = async () => {
   const response = await fetch(
     "http://localhost:8000/buckets/get-all-buckets",
     {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     }
   );
@@ -34,13 +22,43 @@ export const callGetAllBuckets = async () => {
   return await response.json();
 };
 
+export const callCreateBucket = async (bucketName: string) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
+  }
+
+  const response = await fetch(
+    `http://localhost:8000/buckets/create-bucket/${bucketName}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to create bucket: '${bucketName}'`);
+  }
+
+  return await response.json();
+};
+
 export const callRemoveBucket = async (bucketName: string) => {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    throw new Error("User is not authenticated");
+  }
+
   const response = await fetch(
     "http://localhost:8000/buckets/delete-bucket/" + bucketName,
     {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
     }
   );
