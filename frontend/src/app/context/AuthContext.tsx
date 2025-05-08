@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   ReactNode,
+  useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
 
@@ -21,27 +22,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const router = useRouter();
 
-  const verifyToken = async (token: string) => {
-    try {
-      const response = await fetch("http://localhost:8000/auth/verify", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  const verifyToken = useCallback(
+    async (token: string) => {
+      try {
+        const response = await fetch("http://localhost:8000/auth/verify", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error("Token is invalid");
+        if (!response.ok) {
+          throw new Error("Token is invalid");
+        }
+
+        setIsAuthenticated(true);
+      } catch {
+        localStorage.removeItem("access_token");
+        setIsAuthenticated(false);
+        router.push("/pages/login");
       }
-
-      setIsAuthenticated(true);
-    } catch {
-      localStorage.removeItem("access_token");
-      setIsAuthenticated(false);
-      router.push("/pages/login");
-    }
-  };
+    },
+    [router]
+  );
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
@@ -50,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setIsAuthenticated(false);
     }
-  }, []);
+  }, [verifyToken]);
 
   const login = (token: string) => {
     localStorage.setItem("access_token", token);

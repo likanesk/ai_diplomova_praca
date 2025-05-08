@@ -8,6 +8,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install MinIO Client (mc)
+RUN curl -O https://dl.min.io/client/mc/release/linux-amd64/mc && \
+    chmod +x mc && \
+    mv mc /usr/local/bin/
+
 # Create a non-root user
 RUN adduser --disabled-password --gecos '' appuser
 
@@ -22,6 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY . .
+
+# Remove local .env file
+RUN rm -f .env
 
 # Change ownership of the application files to the non-root user
 RUN chown -R appuser:appuser /app

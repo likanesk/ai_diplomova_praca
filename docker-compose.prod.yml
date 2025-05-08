@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # MinIO Object Storage
+  minio:
+    image: minio/minio
+    container_name: minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"  # API port
+      - "9001:9001"  # Web UI port
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password
+    command: server /data --console-address ":9001"
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_SERVER: "http://minio:9000"
+      MINIO_ACCESS_KEY: "admin"
+      MINIO_SECRET_KEY: "password"
+      MINIO_SECURE: "False"
+      MINIO_ALIAS: "myminio"
+    depends_on:
+      - minio
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://backend:8000"
+    depends_on:
+      - backend
+
+volumes:
+  minio_data:
